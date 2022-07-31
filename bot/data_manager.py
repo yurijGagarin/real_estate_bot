@@ -13,6 +13,7 @@ PROD_ID = 'id'
 PROD_DISTRICT = 'district'
 
 MAPPING = {
+    # TODO: add all needed attrs
     PROD_ID: '',
     PROD_DISTRICT: 'Район',
 }
@@ -54,3 +55,6 @@ class DataManager:
 
             pprint(row)
             break
+
+            # TODO: map #2
+            # TODO: create Apartments model?
