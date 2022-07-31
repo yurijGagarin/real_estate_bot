@@ -5,6 +5,7 @@ from pprint import pprint
 import click
 
 from bot.api.google import GoogleApi
+from bot.data_manager import DataManager
 
 
 @click.group()
@@ -33,6 +34,13 @@ def get_sheet_data(name: str):
     data = api.get_sheet_data(name)
     for datum in data:
         pprint(datum)
+
+
+@cli.command()
+@coro
+async def sync_data():
+    data_manager = DataManager()
+    await data_manager.sync_data()
 
 
 if __name__ == "__main__":

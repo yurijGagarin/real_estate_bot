@@ -1,14 +1,8 @@
-import logging
-
 from telegram import *
 from telegram.ext import *
 
 from bot import config
-
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.DEBUG if config.DEBUG else logging.INFO,
-)
+from bot.log import logging
 
 
 async def start(update: Update, context: CallbackContext):
