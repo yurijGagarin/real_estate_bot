@@ -1,7 +1,7 @@
 setup:
 	pip install -r requirements.txt
 run:
-	python main.py
+	python -m bot.main
 db-autogenerate:
 	alembic revision --autogenerate
 db-up:

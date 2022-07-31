@@ -3,7 +3,7 @@ import logging
 from telegram import *
 from telegram.ext import *
 
-import config
+from bot import config
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",

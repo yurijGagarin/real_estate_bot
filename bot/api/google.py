@@ -1,4 +1,3 @@
-import os.path
 from pathlib import Path
 from typing import Optional
 
@@ -9,10 +8,9 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+from bot import config
 
-# The ID and range of a sample spreadsheet.
-SPREADSHEET_ID = '1llR7CzlTmfqbZ2cPt1aIklx-hYgxIbVZy4JMRa-19rk'
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets.readonly']
 
 
 class GoogleApi:
@@ -25,7 +23,6 @@ class GoogleApi:
         self.client_secret_path = base_path / 'client_secret.json'
         if self.token_path.exists():
             self.creds = Credentials.from_authorized_user_file(self.token_path.as_posix(), SCOPES)
-            print(self.creds)
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             self.service = build('sheets', 'v4', credentials=self.creds)
@@ -38,7 +35,6 @@ class GoogleApi:
         if not self.creds or not self.creds.valid:
             flow = InstalledAppFlow.from_client_secrets_file(self.client_secret_path.as_posix(), SCOPES)
             self.creds = flow.run_local_server(port=57664)
-            print(self.creds.to_json())
             # Save the credentials for the next run
             self.token_path.write_text(self.creds.to_json())
 
@@ -46,7 +42,7 @@ class GoogleApi:
         range_name = f'{sheet_name}!A1:AD'
         # Call the Sheets API
         sheet = self.service.spreadsheets()
-        result = sheet.values().get(spreadsheetId=SPREADSHEET_ID,
+        result = sheet.values().get(spreadsheetId=config.SPREADSHEET_ID,
                                     range=range_name).execute()
         values = result.get('values', [])
 

@@ -4,7 +4,7 @@ from pprint import pprint
 
 import click
 
-from api.google import GoogleApi
+from bot.api.google import GoogleApi
 
 
 @click.group()
