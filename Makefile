@@ -1,5 +1,5 @@
 setup:
-    pip install -r requirements.txt
+	pip install -r requirements.txt
 run:
 	python main.py
 db-autogenerate:
