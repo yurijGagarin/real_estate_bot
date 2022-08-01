@@ -22,3 +22,23 @@ class User(Base):
             self.name,
             self.nickname,
         )
+
+
+class Apartments(Base):
+    __tablename__ = "apartments"
+
+    id = Column(Integer, primary_key=True)
+    district = Column(String, nullable=False)
+    street = Column(String, nullable=False)
+    residential_complex = Column(String, nullable=False)
+    rooms = Column(Integer, nullable=False)
+    rent_price = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)
+    link = Column(String, nullable=False)
+
+    def __repr__(self):
+        return "<Apartments(id='%s' rent_price='%s', link='%s')>" % (
+            self.id,
+            self.rent_price,
+            self.link,
+        )
