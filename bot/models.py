@@ -42,3 +42,25 @@ class Apartments(Base):
             self.rent_price,
             self.link,
         )
+
+
+class Houses(Base):
+    __tablename__ = "houses"
+
+    id = Column(Integer, primary_key=True)
+    district = Column(String, nullable=False)
+    placing = Column(String, nullable=False)
+    rooms = Column(Integer, nullable=False)
+    living_area = Column(Integer, nullable=False)
+    territory_area = Column(Integer, nullable=False)
+    rent_price = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)
+    link = Column(String, nullable=False)
+
+    def __repr__(self):
+        return "<Apartments(id='%s', living_area='%s' rent_price='%s', link='%s')>" % (
+            self.id,
+            self.rent_price,
+            self.living_area,
+            self.link,
+        )

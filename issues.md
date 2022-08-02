@@ -1,3 +1,4 @@
-- [ ] What shall we do with objects with no Residential Property
-- (I mean that they are cannot be filled because its just nameless builduing )
+- [ ] What shall we do with objects with no properties
+- (I mean that they are cannot be filled because its just nameless property )
+- for example Residental complex
 
