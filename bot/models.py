@@ -24,17 +24,21 @@ class User(Base):
         )
 
 
-class Apartments(Base):
+class Ad(Base):
+    __abstract__ = True
+    id = Column(Integer, primary_key=True)
+    rent_price = Column(Integer, nullable=False)
+    currency = Column(String, nullable=False)
+    link = Column(String, nullable=False)
+
+
+class Apartments(Ad):
     __tablename__ = "apartments"
 
-    id = Column(Integer, primary_key=True)
     district = Column(String, nullable=False)
     street = Column(String, nullable=False)
     residential_complex = Column(String, nullable=False)
     rooms = Column(Integer, nullable=False)
-    rent_price = Column(Integer, nullable=False)
-    currency = Column(String, nullable=False)
-    link = Column(String, nullable=False)
 
     def __repr__(self):
         return "<Apartments(id='%s' rent_price='%s', link='%s')>" % (
@@ -44,18 +48,14 @@ class Apartments(Base):
         )
 
 
-class Houses(Base):
+class Houses(Ad):
     __tablename__ = "houses"
 
-    id = Column(Integer, primary_key=True)
     district = Column(String, nullable=False)
     placing = Column(String, nullable=False)
     rooms = Column(Integer, nullable=False)
     living_area = Column(Integer, nullable=False)
     territory_area = Column(Integer, nullable=False)
-    rent_price = Column(Integer, nullable=False)
-    currency = Column(String, nullable=False)
-    link = Column(String, nullable=False)
 
     def __repr__(self):
         return "<Apartments(id='%s', living_area='%s' rent_price='%s', link='%s')>" % (
