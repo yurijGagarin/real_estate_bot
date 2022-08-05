@@ -70,6 +70,7 @@ class Manager:
     @property
     def active_filter(self):
         return self.filters[self.state.filter_index]
+
     # TODO: make more readable code --> declarative one ( what is doing and not how  its  doing)
     async def process_action(self):
         payload = self.get_payload()
@@ -111,7 +112,8 @@ class Manager:
             return None
 
     async def show_result(self):
-        result = await get_result(await self.active_filter.get_query())
+        q = await self.active_filter.get_query()
+        result = await get_result(q)
         for link in result:
             await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
 

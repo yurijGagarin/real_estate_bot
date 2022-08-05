@@ -55,7 +55,6 @@ class BaseFilter:
                 self.__query = select(self.model)
         return self.__query
 
-
     async def button_builder(self):
         items = await self.get_items()
         keyboard = []
@@ -101,12 +100,13 @@ class BaseFilter:
     #
     async def process_action(self, payload: Dict):
         print(payload)
+        items = await self.get_items()
         if 's' in payload:
             self.state['s'] = payload['s']
-            for key in (await self.get_items()):
+            for key in items:
                 self.state[key] = payload['s']
         else:
-            key = (await self.get_items())[payload['v']]
+            key = items[payload['v']]
 
             self.state[key] = not self.state.get(key)
         return dict(self.state)
@@ -115,7 +115,8 @@ class BaseFilter:
         return len(list(filter(None, self.state.values())))
 
     def build_text(self):
-        return f'{self.name}: ' + ', '.join([k for k, v in self.state.items() if v])
+        items = self.state.items()
+        return f'{self.name}: ' + ', '.join([k for k, v in items if v])
 
     async def get_items(self):
         return []
@@ -185,7 +186,6 @@ class DistrictBaseFilter(BaseFilter):
         for district in legal_districts:
             if self.state[str(district)]:
                 items.append(district)
-            legal_districts.remove(district)
 
         query = await self.get_query()
         if len(items):
