@@ -83,7 +83,8 @@ class Manager:
             elif ACTION_BACK in payload:
                 self.state.filters[self.state.filter_index] = None
                 self.state.filter_index -= 1
-
+            elif 'else' in payload:
+                return await self.show_result()
             else:
                 self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload)
 
@@ -114,8 +115,20 @@ class Manager:
     async def show_result(self):
         q = await self.active_filter.get_query()
         result = await get_result(q)
-        for link in result:
-            await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
+        slice_idx = 0
+        if len(result) > 10:
+            sliced_result = result[slice_idx:(10 + slice_idx)]
+            slice_idx += 10
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Ще огологощення", callback_data='{"else": 1}')]])
+
+            for link in sliced_result:
+                await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
+            await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text="Ще варіанти",  reply_markup=reply_markup)
+
+
+        else:
+            for link in result:
+                await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
 
     def save_state(self):
         self.context.user_data['filter_state'] = self.state.to_json()
