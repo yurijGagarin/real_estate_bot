@@ -127,7 +127,7 @@ class DataManager:
 
                 value = datum[col_idx] if col_idx < datum_len else None
 
-                if type(value) == 'str':
+                if type(value) == str:
                     value = value.strip()
 
                 validator = VALIDATORS.get(attr_name)
