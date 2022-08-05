@@ -92,16 +92,16 @@ class Manager:
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
         if self.state.filter_index > 0:
-            kbrd.append(InlineKeyboardButton('Back', callback_data='{"b":1}'))
+            kbrd.append([InlineKeyboardButton('Back', callback_data='{"b":1}')])
 
         if self.active_filter.allow_next():
-            kbrd.append(InlineKeyboardButton('Next', callback_data='{"n":1}'))
+            kbrd.append([InlineKeyboardButton('Next', callback_data='{"n":1}')])
 
-        text = ['Your conditions:']
+        text = ['Твої фільтри:']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(f.build_text())
-        keyboard = InlineKeyboardMarkup.from_column(kbrd)
+        keyboard = InlineKeyboardMarkup(kbrd, resize_keyboard=False)
         await self.update.callback_query.edit_message_text(text='\n'.join(text), reply_markup=keyboard)
 
     def get_payload(self):

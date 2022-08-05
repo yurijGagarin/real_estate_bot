@@ -1,5 +1,5 @@
+import copy
 import json
-from bot.log import logging
 from collections import defaultdict
 from typing import Dict, List, Optional, Type
 
@@ -8,6 +8,7 @@ from sqlalchemy.sql import Select
 from telegram import InlineKeyboardButton
 
 from bot.db import get_unique_el_from_db
+from bot.log import logging
 from bot.models import Ad, Apartments
 
 
@@ -26,18 +27,21 @@ class BaseFilter:
     select_all = 'Обрати всі'
     unselect_all = 'Видалити всі'
     has_select_all: bool
+    desired_amount_of_rows: int
 
     def __init__(self,
                  model: Type[Ad],
                  state: Optional[Dict],
                  prev_filter: Optional['BaseFilter'] = None,
-                 name: Optional[str] = None):
+                 name: Optional[str] = None,
+                 desired_amount_of_rows: Optional[int] = 2):
         if name:
             self.name = name
         self.model = model
         self.prev_filter = prev_filter
         self.state = defaultdict(bool, state or {})
         self.__query = None
+        self.desired_amount_of_rows = desired_amount_of_rows
 
     @function_logger
     async def build_query(self):
@@ -51,30 +55,47 @@ class BaseFilter:
                 self.__query = select(self.model)
         return self.__query
 
-    async def build_keyboard(self) -> List[InlineKeyboardButton]:
-        """Helper function to build the next inline keyboard."""
 
+    async def button_builder(self):
         items = await self.get_items()
-
         keyboard = []
-        for i in range(len(items)):
-            item_value = items[i]
+        row = []
+        i = 0
+        for item in items:
+            item_value = item
             data = json.dumps({
                 'v': i,
             })
             title = item_value
             if self.state.get(item_value):
-                title = f'+ {title}'
-            row = InlineKeyboardButton(title, callback_data=data)
-            keyboard.append(row)
+                title = f'{title} ✅'
+            row.append(InlineKeyboardButton(title, callback_data=data))
+            if len(row) == self.desired_amount_of_rows:
+                keyboard.append(row)
+                row = []
+            i += 1
+        return keyboard
+
+    async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        """Helper function to build the next inline keyboard."""
+        items = await self.get_items()
+        if len(items) <= 2:
+            self.desired_amount_of_rows = 1
+            keyboard = await self.button_builder()
+
+        elif len(items) <= 8:
+            keyboard = await self.button_builder()
+
+        else:
+            self.desired_amount_of_rows = 3
+            keyboard = await self.button_builder()
 
         if self.has_select_all:
             if self.state.get('s'):
-                keyboard.append(InlineKeyboardButton(self.unselect_all, callback_data='{"s": 0}'))
+                keyboard.append([InlineKeyboardButton(self.unselect_all, callback_data='{"s": 0}')])
             else:
-                keyboard.append(InlineKeyboardButton(self.select_all, callback_data='{"s": 1}'))
+                keyboard.append([InlineKeyboardButton(self.select_all, callback_data='{"s": 1}')])
 
-        # TODO: rewrite it
         return keyboard
 
     #
@@ -101,7 +122,7 @@ class BaseFilter:
 
 
 class RoomsBaseFilter(BaseFilter):
-    name = 'Rooms'
+    name = 'Кількість кімнат'
     max_rooms = 4
     has_select_all = False
 
@@ -148,7 +169,7 @@ class RoomsBaseFilter(BaseFilter):
 
 
 class DistrictBaseFilter(BaseFilter):
-    name = 'Districts'
+    name = 'Райони'
     has_select_all = True
 
     async def get_items(self):
@@ -173,7 +194,7 @@ class DistrictBaseFilter(BaseFilter):
 
 
 class ResidentialComplexBaseFilter(BaseFilter):
-    name = 'Residential Complex'
+    name = 'ЖК'
     has_select_all = True
 
     def __init__(self,
