@@ -17,7 +17,7 @@ MAIN_MENU_TEXT = 'Головне Меню'
 LOAD_MORE_LINKS_TEXT = "Показати"
 LOAD_MORE_LINKS_BTN_TEXT = "Тут є ще вараінти для тебе"
 MAIN_MENU_BTN_TEXT = "До головного меню"
-WELCOME_TEXT = "Вітаємо вас в боті нерухомості.\nОберіть бажану послугу."
+WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Оберіть бажану послугу."
 
 # Main Menu Buttons
 

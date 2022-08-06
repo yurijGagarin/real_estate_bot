@@ -1,12 +1,13 @@
-import copy
 import json
 from collections import defaultdict
+from sqlalchemy import or_, and_
 from typing import Dict, List, Optional, Type
 
 from sqlalchemy import select
 from sqlalchemy.sql import Select
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, Update
 
+from bot.context.payload import Payload
 from bot.db import get_unique_el_from_db
 from bot.log import logging
 from bot.models import Ad, Apartments
@@ -25,7 +26,7 @@ class BaseFilter:
     __query: Optional[Select]
     name: str
     select_all = 'Обрати всі'
-    unselect_all = 'Видалити всі'
+    unselect_all = 'Зняти виділення з усіх'
     has_select_all: bool
     desired_amount_of_rows: int
 
@@ -98,16 +99,15 @@ class BaseFilter:
         return keyboard
 
     #
-    async def process_action(self, payload: Dict):
+    async def process_action(self, payload: Payload, update: Update):
         print(payload)
         items = await self.get_items()
-        if 's' in payload:
-            self.state['s'] = payload['s']
+        if 's' in payload.callback:
+            self.state['s'] = payload.callback['s']
             for key in items:
-                self.state[key] = payload['s']
-        else:
-            key = items[payload['v']]
-
+                self.state[key] = payload.callback['s']
+        elif 'v' in payload.callback:
+            key = items[payload.callback['v']]
             self.state[key] = not self.state.get(key)
         return dict(self.state)
 
@@ -224,3 +224,59 @@ class ResidentialComplexBaseFilter(BaseFilter):
         if len(items):
             return query.filter(self.model.residential_complex.in_(items))
         return query.filter()
+
+
+class PriceFilter(BaseFilter):
+    name = 'Ціна'
+    has_select_all = False
+
+    async def get_items(self):
+        return []
+
+    def build_text(self):
+        from_text = 'від ' + str(self.state['price_from'])
+        to_text = 'до ' + str(self.state['price_to'])
+        if not self.state['price_from']:
+            return 'Введіть нижню межу ціни 👇'
+        elif not self.state['price_to']:
+            return f'{self.name}: ' + from_text + ' \nВведіть верхню межу ціни 👇'
+        else:
+            return f'{self.name}: ' + from_text + ' ' + to_text
+
+    async def process_action(self, payload: Payload, update: Update):
+        try:
+            number = int(payload.message.strip())
+            if not self.state['price_from']:
+                self.state['price_from'] = number
+            elif not self.state['price_to']:
+                self.state['price_to'] = number
+        except ValueError:
+            pass
+
+        if payload.message:
+            await update.message.delete()
+
+        return dict(self.state)
+
+    def allow_next(self):
+        return self.state['price_from'] and self.state['price_to']
+
+    async def build_query(self):
+        q = await self.get_query()
+        price_from = self.state['price_from']
+        price_to = self.state['price_to']
+        currencies = {
+            'USD': 30,
+            'EUR': 32,
+            'UAH': 1,
+        }
+
+        filters = []
+        for k, v in currencies.items():
+            f = and_(self.model.currency == k, price_from / v <= self.model.rent_price,
+                     self.model.rent_price <= price_to / v)
+            filters.append(f)
+
+        q = q.filter(or_(*filters))
+
+        return q
