@@ -93,6 +93,7 @@ class Manager:
                 # TODO FIX STATE RESET
                 self.state.filters = []
                 self.state.filter_index = 0
+                self.save_state()
                 return await self.update.callback_query.edit_message_text(text='Головне меню', reply_markup=reply_markup)
             else:
                 self.context.user_data['result_sliced_view'] = 0
