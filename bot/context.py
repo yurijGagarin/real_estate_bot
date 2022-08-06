@@ -4,12 +4,14 @@ from typing import Type, List
 
 from sqlalchemy.sql import Select
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from bot.db import get_result
 from bot.filters import BaseFilter
-from bot.navigation import main_menu_buttons
 from bot.models import Ad
+from bot.navigation import main_menu_buttons, ACTION_NEXT, ACTION_BACK, MAIN_MENU, MAIN_MENU_TEXT, LOAD_MORE_LINKS_TEXT, \
+    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
 
 
 class State:
@@ -35,11 +37,6 @@ class State:
     @classmethod
     def from_context(cls, context: ContextTypes.DEFAULT_TYPE):
         return cls.from_json(context.user_data.get('filter_state') or '{}')
-
-
-ACTION_NEXT = 'n'
-ACTION_BACK = 'b'
-MAIN_MENU = 'm'
 
 
 class Manager:
@@ -73,34 +70,44 @@ class Manager:
     def active_filter(self):
         return self.filters[self.state.filter_index]
 
-    # TODO: make more readable code --> declarative one ( what is doing and not how  its  doing)
     async def process_action(self):
         payload = self.get_payload()
 
         if payload is not None:
             if ACTION_NEXT in payload:
                 if self.state.filter_index < len(self.filters) - 1:
-                    self.state.filter_index += 1
+                    await self.change_filter_index('plus', 1)
                 else:
                     return await self.show_result()
             elif ACTION_BACK in payload:
                 self.state.filters[self.state.filter_index] = None
-                self.state.filter_index -= 1
+                await self.change_filter_index('minus', 1)
+
             elif 'else' in payload:
                 return await self.show_result()
             elif MAIN_MENU in payload:
                 reply_markup = await main_menu_buttons()
-                # TODO FIX STATE RESET
-                self.state.filters = []
-                self.state.filter_index = 0
-                self.save_state()
-                return await self.update.callback_query.edit_message_text(text='Головне меню', reply_markup=reply_markup)
+                await self.reset_state()
+                return await self.update.callback_query.edit_message_text(text=MAIN_MENU_TEXT,
+                                                                          reply_markup=reply_markup
+                                                                          )
             else:
                 self.context.user_data['result_sliced_view'] = 0
                 self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload)
 
         await self.edit_message()
         self.save_state()
+
+    async def reset_state(self):
+        self.state.filters = []
+        self.state.filter_index = 0
+        self.save_state()
+
+    async def change_filter_index(self, method, step):
+        if method == 'plus':
+            self.state.filter_index += step
+        elif method == 'minus':
+            self.state.filter_index -= step
 
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
@@ -114,8 +121,10 @@ class Manager:
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(f.build_text())
-        keyboard = InlineKeyboardMarkup(kbrd, resize_keyboard=False)
-        await self.update.callback_query.edit_message_text(text='\n'.join(text), reply_markup=keyboard)
+        keyboard = InlineKeyboardMarkup(kbrd)
+        await self.update.callback_query.edit_message_text(text='\n'.join(text),
+                                                           reply_markup=keyboard,
+                                                           )
 
     def get_payload(self):
         try:
@@ -133,15 +142,17 @@ class Manager:
                             (10 + self.context.user_data['result_sliced_view'])
                             ]
             self.context.user_data['result_sliced_view'] += 10
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Ще огологощення",
+
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
                                                                        callback_data='{"else": 1}')],
-                                                 [InlineKeyboardButton("Головне Меню",
+                                                 [InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
                                                                        callback_data='{"m": 1}')]
                                                  ])
+
             for link in sliced_result:
                 await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
             await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
-                                                text="Ще варіанти",
+                                                text=LOAD_MORE_LINKS_BTN_TEXT,
                                                 reply_markup=reply_markup)
         else:
             for link in result:

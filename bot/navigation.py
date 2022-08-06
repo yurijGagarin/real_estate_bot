@@ -1,23 +1,30 @@
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 # Stages
-# TODO use string consts instread of numbers
-START_ROUTES, APARTMENTS, HOUSES, END_ROUTES = range(4)
+START_ROUTES = "START_STAGE"
+APARTMENTS = "APARTMENTS_STAGE"
+HOUSES = "HOUSES_STAGE"
+END_ROUTES = "END_STAGE"
 # Callback data
 APARTMENTS_STATE = 'APARTMENTS_STATE'
 HOUSES_STATE = 'HOUSES_STATE'
-
-# TODO use string consts instread of numbers
-THREE, FOUR = range(2)
-ONE_ONE, ONE_TWO, ONE_THREE, ONE_FOUR = range(11, 15)
+NEW_REAL_ESTATE_ALARM_STATE = 'NEW_REAL_ESTATE_ALARM_STATE'
+# Other constants
+ACTION_NEXT = 'n'
+ACTION_BACK = 'b'
+MAIN_MENU = 'm'
+MAIN_MENU_TEXT = 'Головне Меню'
+LOAD_MORE_LINKS_TEXT = "Показати"
+LOAD_MORE_LINKS_BTN_TEXT = "Тут є ще вараінти для тебе"
+MAIN_MENU_BTN_TEXT = "До головного меню"
+WELCOME_TEXT = "Вітаємо вас в боті нерухомості.\nОберіть бажану послугу."
 
 # Main Menu Buttons
 
 START_BUTTONS = {
     'Оренда Квартир': APARTMENTS_STATE,
     'Орена Домів': HOUSES_STATE,
-    'Повідомлення про нові оголошення': THREE,
+    'Повідомлення про нові оголошення': NEW_REAL_ESTATE_ALARM_STATE,
 }
 
 

@@ -206,8 +206,6 @@ class ResidentialComplexBaseFilter(BaseFilter):
 
     async def get_items(self):
         data = await get_unique_el_from_db(await self.get_query(), 'residential_complex')
-        # items = []
-        # for res_complex in data:
 
         return data
 
