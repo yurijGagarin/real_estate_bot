@@ -8,6 +8,7 @@ from telegram.ext import ContextTypes
 
 from bot.db import get_result
 from bot.filters import BaseFilter
+from bot.navigation import main_menu_buttons
 from bot.models import Ad
 
 
@@ -38,6 +39,7 @@ class State:
 
 ACTION_NEXT = 'n'
 ACTION_BACK = 'b'
+MAIN_MENU = 'm'
 
 
 class Manager:
@@ -74,6 +76,7 @@ class Manager:
     # TODO: make more readable code --> declarative one ( what is doing and not how  its  doing)
     async def process_action(self):
         payload = self.get_payload()
+
         if payload is not None:
             if ACTION_NEXT in payload:
                 if self.state.filter_index < len(self.filters) - 1:
@@ -85,7 +88,14 @@ class Manager:
                 self.state.filter_index -= 1
             elif 'else' in payload:
                 return await self.show_result()
+            elif MAIN_MENU in payload:
+                reply_markup = await main_menu_buttons()
+                # TODO FIX STATE RESET
+                self.state.filters = []
+                self.state.filter_index = 0
+                return await self.update.callback_query.edit_message_text(text='Головне меню', reply_markup=reply_markup)
             else:
+                self.context.user_data['result_sliced_view'] = 0
                 self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload)
 
         await self.edit_message()
@@ -115,17 +125,23 @@ class Manager:
     async def show_result(self):
         q = await self.active_filter.get_query()
         result = await get_result(q)
-        slice_idx = 0
         if len(result) > 10:
-            sliced_result = result[slice_idx:(10 + slice_idx)]
-            slice_idx += 10
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Ще огологощення", callback_data='{"else": 1}')]])
-
+            sliced_result = result[
+                            self.context.user_data['result_sliced_view']
+                            :
+                            (10 + self.context.user_data['result_sliced_view'])
+                            ]
+            self.context.user_data['result_sliced_view'] += 10
+            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("Ще огологощення",
+                                                                       callback_data='{"else": 1}')],
+                                                 [InlineKeyboardButton("Головне Меню",
+                                                                       callback_data='{"m": 1}')]
+                                                 ])
             for link in sliced_result:
                 await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
-            await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text="Ще варіанти",  reply_markup=reply_markup)
-
-
+            await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
+                                                text="Ще варіанти",
+                                                reply_markup=reply_markup)
         else:
             for link in result:
                 await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)

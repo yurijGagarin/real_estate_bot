@@ -1,8 +1,3 @@
-import json
-from json import JSONDecodeError
-from pprint import pprint
-
-import telegram.error
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     Application,
@@ -13,33 +8,20 @@ from telegram.ext import (
 )
 
 from bot import config
-from bot.context import Manager, State
+from bot.context import Manager
 from bot.filters import RoomsBaseFilter, DistrictBaseFilter, ResidentialComplexBaseFilter
 from bot.log import logging
 from bot.models import Apartments
+from bot.navigation import main_menu_buttons, START_ROUTES, APARTMENTS_STATE, THREE, HOUSES_STATE, END_ROUTES, \
+    APARTMENTS
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-# Stages
-# TODO use string consts instread of numbers
-START_ROUTES, APARTMENTS, HOUSES, END_ROUTES = range(4)
-# Callback data
-APARTMENTS_STATE = 'APARTMENTS_STATE'
-HOUSES_STATE = 'HOUSES_STATE'
 
-# TODO use string consts instread of numbers
-THREE, FOUR = range(2)
-ONE_ONE, ONE_TWO, ONE_THREE, ONE_FOUR = range(11, 15)
 
-# Main Menu Buttons
-START_BUTTONS = {
-    'Оренда Квартир': APARTMENTS_STATE,
-    'Орена Домів': HOUSES_STATE,
-    'Повідомлення про нові оголошення': THREE,
-}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -51,14 +33,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     # and a string as callback_data
     # The keyboard is a list of button rows, where each row is in turn
     # a list (hence `[[...]]`).
-    keyboard = [[]]
-    for k, v in START_BUTTONS.items():
-        keyboard[0].append(
-
-            InlineKeyboardButton(k, callback_data=str(v)),
-
-        )
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    reply_markup = await main_menu_buttons()
     # Send message with text and appended InlineKeyboard
     await update.message.reply_text("Оберіть бажану послугу", reply_markup=reply_markup)
     # Tell ConversationHandler that we're in state `FIRST` now
@@ -66,25 +41,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return START_ROUTES
 
 
-async def start_over(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Prompt same text & keyboard as `start` does but not as new message"""
-    # Get CallbackQuery from Update
-    query = update.callback_query
-    # CallbackQueries need to be answered, even if no notification to the user is needed
-    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
-    await query.answer()
-    keyboard = [
-        [
-            InlineKeyboardButton("1", callback_data=str(APARTMENTS_STATE)),
-            InlineKeyboardButton("2", callback_data=str(HOUSES_STATE)),
-        ]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    # Instead of sending a new message, edit the message that
-    # originated the CallbackQuery. This gives the feeling of an
-    # interactive menu.
-    await query.edit_message_text(text="Start handler, Choose a route", reply_markup=reply_markup)
-    return START_ROUTES
+
+
+
 
 
 async def apartments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -177,7 +136,6 @@ def main() -> None:
                 CallbackQueryHandler(apartments),
             ],
             END_ROUTES: [
-                CallbackQueryHandler(start_over, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(end, pattern="^" + str(HOUSES_STATE) + "$"),
             ],
         },
