@@ -5,5 +5,6 @@
 - [ ] Fix buttons wide resizing
 - [ ] Fix residential complex lots of buttons
 - [ ] Add button skip filter
-
-- 
+- [ ] Money filter
+- [ ] mobile view
+- [ ] fix button layout
