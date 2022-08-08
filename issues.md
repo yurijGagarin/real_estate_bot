@@ -5,6 +5,8 @@
 - [ ] Fix buttons wide resizing
 - [ ] Fix residential complex lots of buttons
 - [ ] Add button skip filter
-- [ ] Money filter
+- [ ] Price filter
 - [ ] mobile view
 - [ ] fix button layout
+- [ ] add homes support
+- [x] get currencies from bank api

@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.sql import Select
 from telegram import InlineKeyboardButton, Update
 
+from bot.api.monobank_currency import get_exchange_rate
 from bot.context.payload import Payload
 from bot.db import get_unique_el_from_db
 from bot.log import logging
@@ -265,9 +266,11 @@ class PriceFilter(BaseFilter):
         q = await self.get_query()
         price_from = self.state['price_from']
         price_to = self.state['price_to']
+        USD = await get_exchange_rate('USD')
+        EUR = await get_exchange_rate('EUR')
         currencies = {
-            'USD': 30,
-            'EUR': 32,
+            'USD': USD,
+            'EUR': EUR,
             'UAH': 1,
         }
 
