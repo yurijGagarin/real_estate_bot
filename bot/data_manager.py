@@ -86,7 +86,7 @@ class DataManager:
 
     async def sync_data(self):
         await self.sync_apartments()
-        # await self.sync_houses()
+        await self.sync_houses()
 
         logging.info('Done')
 

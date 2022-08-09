@@ -29,12 +29,20 @@ START_BUTTONS = {
 
 
 async def main_menu_buttons():
-    keyboard = [[]]
+    keyboard = []
+    row = []
     for k, v in START_BUTTONS.items():
-        keyboard[0].append(
+
+        row.append(
 
             InlineKeyboardButton(k, callback_data=str(v)),
 
         )
+        if len(row) == 2:
+            keyboard.append(row)
+            row = []
+    if len(row):
+        keyboard.append(row)
+
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup

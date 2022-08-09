@@ -1,5 +1,6 @@
 import re
 
+import telegram
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -10,13 +11,13 @@ from telegram.ext import (
 )
 
 from bot import config
+from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, LivingAreaFilter
 from bot.context.manager import Manager
-from bot.context.filters import RoomsBaseFilter, DistrictBaseFilter, ResidentialComplexBaseFilter, PriceFilter
 from bot.context.state import State
 from bot.log import logging
-from bot.models import Apartments
+from bot.models import Apartments, Houses
 from bot.navigation import main_menu_buttons, START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    END_ROUTES, APARTMENTS, WELCOME_TEXT
+    END_ROUTES, APARTMENTS, WELCOME_TEXT, HOUSES
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -42,22 +43,44 @@ async def apartments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     m = Manager(
         model=Apartments,
         filters=[
+            DistrictFilter,
+            ResidentialComplexFilter,
+            RoomsFilter,
             PriceFilter,
-            DistrictBaseFilter,
-            ResidentialComplexBaseFilter,
-            RoomsBaseFilter,
         ],
         update=update,
         context=context,
     )
 
-    await m.process_action()
+    try:
+        await m.process_action()
+    except telegram.error.BadRequest:
+        await context.bot.send_message(update.effective_chat.id, "Доступний діапазон ціни від 1 до 500 000."
+                                                                 "\nЦіна вказується в гривні.")
 
     return APARTMENTS
 
 
 async def houses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    pass
+    m = Manager(
+        model=Houses,
+        filters=[
+            PriceFilter,
+            LivingAreaFilter,
+            DistrictFilter,
+            RoomsFilter,
+        ],
+        update=update,
+        context=context,
+    )
+
+    try:
+        await m.process_action()
+    except telegram.error.BadRequest:
+        await context.bot.send_message(update.effective_chat.id, "Доступний діапазон ціни від 1 до 500 000."
+                                                                 "\nЦіна вказується в гривні.")
+
+    return HOUSES
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -87,6 +110,11 @@ def main() -> None:
             APARTMENTS: [
                 CallbackQueryHandler(apartments),
                 MessageHandler(filters.Regex(re.compile(r'[0-9]+', re.IGNORECASE)), apartments),
+            ],
+            HOUSES: [
+                CallbackQueryHandler(houses),
+                MessageHandler(filters.Regex(re.compile(r'[0-9]+', re.IGNORECASE)), houses),
+
             ],
             END_ROUTES: [
                 CallbackQueryHandler(end, pattern="^" + str(HOUSES_STATE) + "$"),

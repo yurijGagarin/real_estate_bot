@@ -25,7 +25,7 @@ class Manager:
                  model: Type[Ad],
                  filters: List[Type[BaseFilter]],
                  update: Update,
-                 context: ContextTypes.DEFAULT_TYPE
+                 context: ContextTypes.DEFAULT_TYPE,
                  ):
         self.update = update
         self.context = context
@@ -58,7 +58,8 @@ class Manager:
         elif ACTION_BACK in payload.callback:
             self.state.filters[self.state.filter_index] = None
             self.move_back()
-
+        elif 'p' in payload.callback:
+            self.state.page_idx += 1
         elif 'else' in payload.callback:
             return await self.show_result()
         elif MAIN_MENU in payload.callback:
@@ -68,6 +69,7 @@ class Manager:
                                                                       reply_markup=reply_markup
                                                                       )
         else:
+            self.state.page_idx = 0
             self.state.result_sliced_view = 0
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
 
@@ -96,7 +98,7 @@ class Manager:
         text = ['Обрані фільтри:']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
-            text.append(f.build_text())
+            text.append(await f.build_text())
         keyboard = InlineKeyboardMarkup(kbrd)
         callback_query = self.update.callback_query
         if callback_query is None:
@@ -122,7 +124,7 @@ class Manager:
         return Payload(message=message, callback=callback)
 
     async def show_result(self):
-        q = await self.active_filter.get_query()
+        q = await self.active_filter.build_query()
         result = await get_result(q)
         if len(result) > 10:
             sliced_result = result[self.state.result_sliced_view: (self.state.result_sliced_view + 10)]

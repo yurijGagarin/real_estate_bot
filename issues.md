@@ -5,8 +5,12 @@
 - [ ] Fix buttons wide resizing
 - [ ] Fix residential complex lots of buttons
 - [ ] Add button skip filter
-- [ ] Price filter
-- [ ] mobile view
-- [ ] fix button layout
+- [x] Price filter
+- [x] mobile view
+- [x] fix button layout
 - [ ] add homes support
 - [x] get currencies from bank api
+- [ ] two syhivskyi  districts
+- [x] next button works shitty
+- [ ] add back button
+- [ ] add main menu button

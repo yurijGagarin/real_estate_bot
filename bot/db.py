@@ -1,6 +1,6 @@
 from typing import Dict, List, Type
 
-from sqlalchemy import select, column
+from sqlalchemy import select, column, Column
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import Select
@@ -26,10 +26,9 @@ async def add_objects_to_db(db: Type[bot.models.Ad], data: List[Dict[str, str]])
         await session.commit()
 
 
-async def get_unique_el_from_db(source_query: Select, col: str):
+async def get_unique_el_from_db(source_query: Select, col: Column):
     async with async_session() as session:
-        col_to_search = column(col)
-        query = select(col_to_search).distinct().select_from(source_query)
+        query = select(column(col.key)).distinct().select_from(source_query)
         result = await session.execute(query)
 
         value = result.fetchall()
