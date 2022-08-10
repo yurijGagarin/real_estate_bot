@@ -52,7 +52,7 @@ class Manager:
     async def process_action(self):
         payload = self.get_payload()
 
-        if ACTION_NEXT in payload.callback :
+        if ACTION_NEXT in payload.callback:
             if self.state.filter_index < len(self.filters) - 1:
                 self.move_forward()
             else:
@@ -61,8 +61,6 @@ class Manager:
         elif ACTION_BACK in payload.callback:
             self.state.filters[self.state.filter_index] = None
             self.move_back()
-        elif 'p' in payload.callback:
-            self.state.page_idx += 1
         elif 'else' in payload.callback:
             return await self.show_result()
         elif MAIN_MENU in payload.callback:
@@ -72,7 +70,6 @@ class Manager:
                                                                       reply_markup=reply_markup
                                                                       )
         else:
-            self.state.page_idx = 0
             self.state.result_sliced_view = 0
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
 
@@ -96,12 +93,16 @@ class Manager:
             kbrd.append([InlineKeyboardButton('Назад', callback_data='{"b":1}')])
 
         if self.active_filter.allow_next():
-            kbrd.append([InlineKeyboardButton('Далі', callback_data='{"n":1}')])
+            next_text = 'Пропустити'
+            if self.active_filter.has_values():
+                next_text = 'Далі'
+            kbrd.append([InlineKeyboardButton(next_text, callback_data='{"n":1}')])
 
         text = ['Обрані фільтри:']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(await f.build_text())
+        text = list(filter(None, text))
         keyboard = InlineKeyboardMarkup(kbrd)
         callback_query = self.update.callback_query
         if callback_query is None:

@@ -28,7 +28,8 @@ async def add_objects_to_db(db: Type[bot.models.Ad], data: List[Dict[str, str]])
 
 async def get_unique_el_from_db(source_query: Select, col: Column):
     async with async_session() as session:
-        query = select(column(col.key)).distinct().select_from(source_query)
+        column_obj = column(col.key)
+        query = select(column_obj).distinct().select_from(source_query).filter(column_obj != '').order_by(column_obj)
         result = await session.execute(query)
 
         value = result.fetchall()

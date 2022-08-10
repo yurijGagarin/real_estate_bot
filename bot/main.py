@@ -56,7 +56,7 @@ async def apartments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await m.process_action()
     except telegram.error.BadRequest:
         await context.bot.send_message(update.effective_chat.id, "Доступний діапазон ціни від 1 до 500 000."
-                                                                 "\nЦіна вказується в гривні.")
+                                                                 "\nЦіна вказується в гривні.") #### WAT?
 
     return APARTMENTS
 
@@ -78,7 +78,7 @@ async def houses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         await m.process_action()
     except telegram.error.BadRequest:
         await context.bot.send_message(update.effective_chat.id, "Доступний діапазон ціни від 1 до 500 000."
-                                                                 "\nЦіна вказується в гривні.")
+                                                                 "\nЦіна вказується в гривні.") #### WAT?
 
     return HOUSES
 

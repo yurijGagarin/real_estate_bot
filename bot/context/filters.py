@@ -38,7 +38,6 @@ class BaseFilter:
     has_select_all: bool
     desired_amount_of_rows: int = 2
     skip_filters_text = 'Без різниці'
-    has_skip_filter: bool
 
     def __init__(self,
                  model: Type[Ad],
@@ -51,18 +50,19 @@ class BaseFilter:
         self.model = model
         self.prev_filter = prev_filter
         self.state = state or {
-            SELECTED_VALUES: defaultdict(bool, {}),  # Selected values
+            SELECTED_VALUES: {},  # Selected values
             SELECT_ALL: None,  # Select all
             PAGE_IDX: 0,  # Current page
         }
+        self.state[SELECTED_VALUES] = defaultdict(bool, self.state[SELECTED_VALUES])
         self.__query = None
 
     @property
-    def selected_values(self) -> Dict:
+    def values(self) -> Dict:
         return self.state[SELECTED_VALUES]
 
-    @selected_values.setter
-    def selected_values(self, v):
+    @values.setter
+    def values(self, v):
         self.state[SELECTED_VALUES] = v
 
     @property
@@ -95,7 +95,8 @@ class BaseFilter:
 
     async def build_items_keyboard(self):
         all_items = await self.get_items()
-        has_pagination = len(all_items) > ITEMS_PER_PAGE
+        all_items_len = len(all_items)
+        has_pagination = all_items_len > ITEMS_PER_PAGE
 
         items = all_items[ITEMS_PER_PAGE * self.page_idx: (self.page_idx + 1) * ITEMS_PER_PAGE]
 
@@ -108,7 +109,7 @@ class BaseFilter:
                 SELECTED_VALUES: i + (self.page_idx * ITEMS_PER_PAGE),
             })
             title = item_value
-            if self.state.get(item_value):
+            if self.values.get(item_value):
                 title = f'{title} ✅'
             row.append(InlineKeyboardButton(title, callback_data=data))
 
@@ -120,12 +121,15 @@ class BaseFilter:
             keyboard.append(row)
 
         if has_pagination:
+            btns = []
             # TODO check page index
-            keyboard.append([InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))])
             if self.page_idx > 0:
-                keyboard.append(
-                    [InlineKeyboardButton(f'<-', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))])
-
+                btns.append(
+                    InlineKeyboardButton(f'<-', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)))
+            if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
+                btns.append(InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
+            if len(btns) > 0:
+                keyboard.append(btns)
         return keyboard
 
     async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
@@ -137,8 +141,6 @@ class BaseFilter:
                 keyboard.append([InlineKeyboardButton(self.unselect_all_text, callback_data='{"%s": 0}' % SELECT_ALL)])
             else:
                 keyboard.append([InlineKeyboardButton(self.select_all_text, callback_data='{"%s": 1}' % SELECT_ALL)])
-        if self.has_skip_filter:
-            keyboard.append([InlineKeyboardButton(self.skip_filters_text, callback_data='{"a": 1}')])
         return keyboard
 
     #
@@ -148,27 +150,37 @@ class BaseFilter:
         if SELECT_ALL in payload.callback:
             self.select_all = payload.callback[SELECT_ALL]
             for key in items:
-                self.selected_values[key] = payload.callback[SELECT_ALL]
+                self.values[key] = payload.callback[SELECT_ALL]
         elif SELECTED_VALUES in payload.callback:
             key = items[payload.callback[SELECTED_VALUES]]
-            self.selected_values[key] = not self.state.get(key)
+            self.values[key] = not self.values.get(key)
         elif PAGE_IDX in payload.callback:
             self.page_idx = payload.callback[PAGE_IDX]
 
         return dict(self.state)
 
+    def has_values(self):
+        return len(list(filter(None, self.values.values())))
+
     def allow_next(self):
-        return len(list(filter(None, self.state.values())))
+        # this method could be overridden at child classes if it needs
+
+        # return len(list(filter(None, self.values.values())))
+        return True
 
     async def build_text(self):
         items = await self.get_items()
-        return f'{self.name}: ' + ', '.join([k for k in items if self.state[k]])
+        values = 'не вибрано'
+        if len(list(filter(None, self.values.values()))):
+            values = ', '.join([k for k in items if self.values.get(k)])
+        return f'{self.name}: ' + values
 
     async def get_items(self):
         return []
 
 
 class ColumnFilter(BaseFilter):
+    has_select_all = True
 
     def get_column(self) -> Column:
         raise NotImplementedError()
@@ -179,15 +191,17 @@ class ColumnFilter(BaseFilter):
 
     @function_logger
     async def build_query(self):
-        data = await self.get_items()
+        query = await self.get_query()
+        if self.select_all:
+            return query
 
+        data = await self.get_items()
         filtered_data = []
 
         for datum in data:
-            if self.state[str(datum)]:
+            if self.values[str(datum)]:
                 filtered_data.append(datum)
 
-        query = await self.get_query()
         if len(filtered_data):
             return query.filter(self.get_column().in_(filtered_data))
         return query.filter()
@@ -195,8 +209,6 @@ class ColumnFilter(BaseFilter):
 
 class DistrictFilter(ColumnFilter):
     name = 'Райони'
-    has_select_all = True
-    has_skip_filter = True
 
     def get_column(self) -> Column:
         return self.model.district
@@ -204,8 +216,6 @@ class DistrictFilter(ColumnFilter):
 
 class ResidentialComplexFilter(ColumnFilter):
     name = 'ЖК'
-    has_select_all = True
-    has_skip_filter = True
 
     model: Type[Apartments]
 
@@ -218,7 +228,6 @@ class RoomsFilter(BaseFilter):
 
     max_rooms = 4
     has_select_all = False
-    has_skip_filter = True
 
     def __init__(self,
                  model: Type[Ad],
@@ -248,14 +257,14 @@ class RoomsFilter(BaseFilter):
         rooms_qty = await self.get_rooms_qty()
         items = []
         for r_qty in range(1, self.max_rooms):
-            if self.state[str(r_qty)]:
+            if self.values[str(r_qty)]:
                 items.append(r_qty)
             try:
                 rooms_qty.remove(r_qty)
             except ValueError:
                 pass
 
-        if self.state[f'{self.max_rooms}+']:
+        if self.values[f'{self.max_rooms}+']:
             items += rooms_qty
 
         query = await self.get_query()
@@ -267,14 +276,13 @@ class RoomsFilter(BaseFilter):
 class PriceFilter(BaseFilter):
     name = 'Ціна'
     has_select_all = False
-    has_skip_filter = True
 
     async def build_text(self):
-        from_text = 'від ' + str(self.state['price_from'])
-        to_text = 'до ' + str(self.state['price_to'])
-        if not self.state['price_from']:
+        from_text = 'від ' + str(self.values['price_from'])
+        to_text = 'до ' + str(self.values['price_to'])
+        if not self.values['price_from']:
             return 'Введіть нижню межу ціни 👇'
-        elif not self.state['price_to']:
+        elif not self.values['price_to']:
             return f'{self.name}: ' + from_text + ' \nВведіть верхню межу ціни 👇'
         else:
             return f'{self.name}: ' + from_text + ' ' + to_text
@@ -282,26 +290,33 @@ class PriceFilter(BaseFilter):
     async def process_action(self, payload: Payload, update: Update):
         try:
             number = int(payload.message.strip())
-            if not self.state['price_from']:
-                self.state['price_from'] = number
-            elif not self.state['price_to']:
-                self.state['price_to'] = number
+            if not self.values['price_from']:
+                self.values['price_from'] = number
+            elif not self.values['price_to']:
+                self.values['price_to'] = number
         except ValueError:
             pass
 
         if payload.message:
             await update.message.delete()
 
-        return dict(self.state)
+        return dict(self.values)
+
+    def has_values(self):
+        return self.values['price_from'] and self.values['price_to']
 
     def allow_next(self):
-        return self.state['price_from'] and self.state['price_to']
+        return True
 
     @function_logger
     async def build_query(self):
         q = await self.get_query()
-        price_from = self.state['price_from']
-        price_to = self.state['price_to']
+
+        if not self.has_values():
+            return q.filter()
+
+        price_from = self.values['price_from']
+        price_to = self.values['price_to']
 
         currencies = get_exchange_rates()
 
@@ -334,12 +349,11 @@ class LivingAreaFilter(BaseFilter):
             '100-200м2': [100, 200],
             '200-300м2': [200, 300],
             '> 300м2': [300, 10000],
-
         }
         area_from = []
         area_to = []
         for k, v in living_areas.items():
-            if self.state[k]:
+            if self.values[k]:
                 area_from.append(v[0])
                 area_to.append(v[1])
 
