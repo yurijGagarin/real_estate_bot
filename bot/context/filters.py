@@ -121,15 +121,14 @@ class BaseFilter:
             keyboard.append(row)
 
         if has_pagination:
-            btns = []
-            # TODO check page index
+            buttons = []
             if self.page_idx > 0:
-                btns.append(
+                buttons.append(
                     InlineKeyboardButton(f'<-', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)))
             if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
-                btns.append(InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
-            if len(btns) > 0:
-                keyboard.append(btns)
+                buttons.append(InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
+            if len(buttons) > 0:
+                keyboard.append(buttons)
         return keyboard
 
     async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
@@ -290,20 +289,21 @@ class PriceFilter(BaseFilter):
     async def process_action(self, payload: Payload, update: Update):
         try:
             number = int(payload.message.strip())
-            if not self.values['price_from']:
-                self.values['price_from'] = number
-            elif not self.values['price_to']:
-                self.values['price_to'] = number
+            if number:
+                if not self.values['price_from']:
+                    self.values['price_from'] = number
+                elif not self.values['price_to']:
+                    self.values['price_to'] = number
         except ValueError:
             pass
 
         if payload.message:
             await update.message.delete()
 
-        return dict(self.values)
+        return dict(self.state)
 
     def has_values(self):
-        return self.values['price_from'] and self.values['price_to']
+        return self.values['price_from'] or self.values['price_to']
 
     def allow_next(self):
         return True
@@ -322,13 +322,28 @@ class PriceFilter(BaseFilter):
 
         filters = []
         for k, v in currencies.items():
-            f = and_(self.model.currency == k, price_from / v <= self.model.rent_price,
-                     self.model.rent_price <= price_to / v)
+            conditions = [self.model.currency == k]
+
+            if price_from:
+                conditions.append(price_from / v <= self.model.rent_price)
+            if price_to:
+                conditions.append(self.model.rent_price <= price_to / v)
+
+            f = and_(*conditions)
+
             filters.append(f)
 
         q = q.filter(or_(*filters))
 
         return q
+
+
+LIVING_AREAS = {
+    '< 100м2': [0, 100],
+    '100-200м2': [100, 200],
+    '200-300м2': [200, 300],
+    '> 300м2': [300, 10000],
+}
 
 
 class LivingAreaFilter(BaseFilter):
@@ -337,22 +352,16 @@ class LivingAreaFilter(BaseFilter):
     model: Type[Houses]
 
     async def get_items(self):
-        living_areas = ['< 100м2', '100-200м2', '200-300м2', '> 300м2']
+        living_areas = LIVING_AREAS.keys()
         return living_areas
 
     @function_logger
     async def build_query(self):
         q = await self.get_query()
         # TODO rewrite better
-        living_areas = {
-            '< 100м2': [0, 100],
-            '100-200м2': [100, 200],
-            '200-300м2': [200, 300],
-            '> 300м2': [300, 10000],
-        }
         area_from = []
         area_to = []
-        for k, v in living_areas.items():
+        for k, v in LIVING_AREAS.items():
             if self.values[k]:
                 area_from.append(v[0])
                 area_to.append(v[1])

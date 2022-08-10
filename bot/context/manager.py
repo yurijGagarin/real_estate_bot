@@ -3,7 +3,7 @@ from json import JSONDecodeError
 from typing import Type, List
 
 from sqlalchemy.sql import Select
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, Message
 from telegram.ext import ContextTypes
 
 from bot.context.filters import BaseFilter
@@ -108,9 +108,17 @@ class Manager:
         if callback_query is None:
             callback_query = self.context.user_data['callback_query']
 
-        await callback_query.edit_message_text(text='\n'.join(text), reply_markup=keyboard)
+        new_text = '\n'.join(text)
 
-        self.context.user_data['callback_query'] = callback_query
+        # Edit message only if it has diff
+        if not self.context.user_data.get('callback_query') or \
+                new_text != callback_query.message.text or \
+                keyboard.inline_keyboard != callback_query.message.reply_markup.inline_keyboard:
+            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard)
+
+            if isinstance(edit_result, Message):
+                callback_query.message = edit_result
+            self.context.user_data['callback_query'] = callback_query
 
     def get_payload(self):
         message = ""
@@ -130,6 +138,7 @@ class Manager:
     async def show_result(self):
         q = await self.active_filter.build_query()
         result = await get_result(q)
+        # TODO: handle empty result case !!!!!
         if len(result) > 10:
             sliced_result = result[self.state.result_sliced_view: (self.state.result_sliced_view + 10)]
             self.state.result_sliced_view += 10
