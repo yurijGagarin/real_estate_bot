@@ -42,6 +42,9 @@ class Manager:
             prev_filter = filter_obj
             self.filters.append(filter_obj)
 
+    def get_state(self):
+        return self.state
+
     @property
     def active_filter(self):
         return self.filters[self.state.filter_index]
@@ -49,7 +52,7 @@ class Manager:
     async def process_action(self):
         payload = self.get_payload()
 
-        if ACTION_NEXT in payload.callback:
+        if ACTION_NEXT in payload.callback :
             if self.state.filter_index < len(self.filters) - 1:
                 self.move_forward()
             else:

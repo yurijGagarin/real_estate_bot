@@ -1,4 +1,3 @@
-import copy
 import json
 from collections import defaultdict
 from typing import Dict, List, Optional, Type
@@ -27,21 +26,28 @@ def function_logger(func):
 class BaseFilter:
     __query: Optional[Select]
     name: str
-    select_all = 'Обрати всі'
-    unselect_all = 'Зняти виділення з усіх'
+    select_all_text = 'Обрати всі'
+    unselect_all_text = 'Зняти виділення з усіх'
     has_select_all: bool
     desired_amount_of_rows: int = 2
+    skip_filters_text = 'Без різниці'
+    has_skip_filter: bool
 
     def __init__(self,
                  model: Type[Ad],
                  state: Optional[Dict],
                  prev_filter: Optional['BaseFilter'] = None,
                  name: Optional[str] = None):
+
         if name:
             self.name = name
         self.model = model
         self.prev_filter = prev_filter
-        self.state = defaultdict(bool, state or {})
+        self.state = state or {
+            SELECTED_VALUES: defaultdict(bool, {}),  # Selected values
+            SELECT_ALL: None,  # Select all
+            PAGE_IDX: 0,  # Current page
+        }
         self.__query = None
 
     @function_logger
@@ -55,33 +61,6 @@ class BaseFilter:
             else:
                 self.__query = select(self.model)
         return self.__query
-
-    async def paginator(self, items):
-        keyboard = []
-        page_idx = 0
-        row = []
-        i = 0
-        page = items[20 * page_idx: (1 + page_idx) * 20]
-        self.state.page_idx += 1
-        for item in page:
-            item_value = item
-            data = json.dumps({
-                'v': i,
-            })
-            title = item_value
-            if self.state.get(item_value):
-                title = f'{title} ✅'
-            row.append(InlineKeyboardButton(title, callback_data=data))
-
-            if len(row) == self.desired_amount_of_rows:
-                keyboard.append(row)
-                row = []
-            i += 1
-        if len(row):
-            keyboard.append(row)
-        keyboard.append([
-            InlineKeyboardButton(f'Ще {self.name}', callback_data='{"p": %s}' % page_idx)])
-        return keyboard
 
     async def build_items_keyboard(self):
         items = await self.get_items()
@@ -114,27 +93,27 @@ class BaseFilter:
         keyboard = await self.build_items_keyboard()
 
         if self.has_select_all:
-            if self.state.get('s'):
-                keyboard.append([InlineKeyboardButton(self.unselect_all, callback_data='{"s": 0}')])
+            if self.select_all:
+                keyboard.append([InlineKeyboardButton(self.unselect_all_text, callback_data='{"%s": 0}' % SELECT_ALL)])
             else:
-                keyboard.append([InlineKeyboardButton(self.select_all, callback_data='{"s": 1}')])
-
+                keyboard.append([InlineKeyboardButton(self.select_all_text, callback_data='{"%s": 1}' % SELECT_ALL)])
+        if self.has_skip_filter:
+            keyboard.append([InlineKeyboardButton(self.skip_filters_text, callback_data='{"a": 1}')])
         return keyboard
 
     #
     async def process_action(self, payload: Payload, update: Update):
         print(payload)
         items = await self.get_items()
-        if 's' in payload.callback:
-            self.state['s'] = payload.callback['s']
+        if SELECT_ALL in payload.callback:
+            self.select_all = payload.callback[SELECT_ALL]
             for key in items:
-                self.state[key] = payload.callback['s']
-        elif 'v' in payload.callback:
-            key = items[payload.callback['v']]
-            if 'p' in payload.callback:
-                key += 20
-            self.state[key] = not self.state.get(key)
-
+                self.selected_values[key] = payload.callback[SELECT_ALL]
+        elif SELECTED_VALUES in payload.callback:
+            key = items[payload.callback[SELECTED_VALUES]]
+            self.selected_values[key] = not self.state.get(key)
+        elif PAGE_IDX in payload.callback:
+            self.page_idx = payload.callback[PAGE_IDX]
 
         return dict(self.state)
 
@@ -177,6 +156,7 @@ class ColumnFilter(BaseFilter):
 class DistrictFilter(ColumnFilter):
     name = 'Райони'
     has_select_all = True
+    has_skip_filter = True
 
     def get_column(self) -> Column:
         return self.model.district
@@ -185,6 +165,8 @@ class DistrictFilter(ColumnFilter):
 class ResidentialComplexFilter(ColumnFilter):
     name = 'ЖК'
     has_select_all = True
+    has_skip_filter = True
+
     model: Type[Apartments]
 
     def get_column(self) -> Column:
@@ -196,6 +178,7 @@ class RoomsFilter(BaseFilter):
 
     max_rooms = 4
     has_select_all = False
+    has_skip_filter = True
 
     def __init__(self,
                  model: Type[Ad],
@@ -244,6 +227,7 @@ class RoomsFilter(BaseFilter):
 class PriceFilter(BaseFilter):
     name = 'Ціна'
     has_select_all = False
+    has_skip_filter = True
 
     async def build_text(self):
         from_text = 'від ' + str(self.state['price_from'])
