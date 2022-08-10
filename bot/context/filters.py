@@ -23,6 +23,13 @@ def function_logger(func):
     return wrapper
 
 
+SELECTED_VALUES = 'v'
+SELECT_ALL = 's'
+PAGE_IDX = 'p'
+
+ITEMS_PER_PAGE = 20
+
+
 class BaseFilter:
     __query: Optional[Select]
     name: str
@@ -50,6 +57,30 @@ class BaseFilter:
         }
         self.__query = None
 
+    @property
+    def selected_values(self) -> Dict:
+        return self.state[SELECTED_VALUES]
+
+    @selected_values.setter
+    def selected_values(self, v):
+        self.state[SELECTED_VALUES] = v
+
+    @property
+    def page_idx(self):
+        return self.state[PAGE_IDX] or 0
+
+    @page_idx.setter
+    def page_idx(self, value):
+        self.state[PAGE_IDX] = value
+
+    @property
+    def select_all(self):
+        return self.state[SELECT_ALL]
+
+    @select_all.setter
+    def select_all(self, value):
+        self.state[SELECT_ALL] = value
+
     @function_logger
     async def build_query(self):
         return (await self.get_query()).filter()
@@ -63,17 +94,18 @@ class BaseFilter:
         return self.__query
 
     async def build_items_keyboard(self):
-        items = await self.get_items()
-        # if len(items) > 20:
-        #     keyboard = await self.paginator(items)
-        #     return keyboard
+        all_items = await self.get_items()
+        has_pagination = len(all_items) > ITEMS_PER_PAGE
+
+        items = all_items[ITEMS_PER_PAGE * self.page_idx: (self.page_idx + 1) * ITEMS_PER_PAGE]
+
         keyboard = []
         row = []
         i = 0
         for item in items:
             item_value = item
             data = json.dumps({
-                'v': i,
+                SELECTED_VALUES: i + (self.page_idx * ITEMS_PER_PAGE),
             })
             title = item_value
             if self.state.get(item_value):
@@ -86,6 +118,14 @@ class BaseFilter:
             i += 1
         if len(row):
             keyboard.append(row)
+
+        if has_pagination:
+            # TODO check page index
+            keyboard.append([InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))])
+            if self.page_idx > 0:
+                keyboard.append(
+                    [InlineKeyboardButton(f'<-', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))])
+
         return keyboard
 
     async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
