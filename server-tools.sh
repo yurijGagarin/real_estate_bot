@@ -1,4 +1,5 @@
 #!/bin/bash
+# For autocomplete please run `complete -W "htop ssh start stop restart logs sync deploy autocomplete" server-tools.sh`
 source .env || (echo "Can't find .env file" && exit 1)
 
 if [ -z "${SERVER_NAME}" ]; then

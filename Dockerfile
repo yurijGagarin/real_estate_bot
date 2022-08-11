@@ -10,4 +10,4 @@ COPY alembic /app/alembic/
 COPY bot /app/bot/
 COPY alembic.ini /app/
 
-CMD alembic upgrade head && python bot/main.py
+CMD alembic upgrade head && python -m bot.main
