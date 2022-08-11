@@ -7,6 +7,7 @@ services:
       DB_URI: '${DB_URI}'
       TOKEN: '${TOKEN}'
       DEBUG: '${DEBUG}'
+      SPREADSHEET_ID: '${SPREADSHEET_ID}'
     restart: always
 #    volumes:
 #      -
