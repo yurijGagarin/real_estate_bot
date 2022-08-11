@@ -12,7 +12,6 @@ from telegram.ext import (
 from bot import config
 from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, LivingAreaFilter
 from bot.context.manager import Manager
-from bot.context.state import State
 from bot.log import logging
 from bot.models import Apartments, Houses
 from bot.navigation import main_menu_buttons, START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
@@ -24,14 +23,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def send_start_message(update: Update):
+    reply_markup = await main_menu_buttons()
+    if update.message:
+        await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
+    elif update:
+        await update.callback_query.edit_message_text(text=WELCOME_TEXT, reply_markup=reply_markup)
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user = update.message.from_user
     logger.info("User %s started the conversation.", user.first_name)
-    state = State()
-    state.update_context(context)
 
-    reply_markup = await main_menu_buttons()
-    await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
+    await send_start_message(update)
 
     return START_ROUTES
 
@@ -51,9 +55,13 @@ async def apartments(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context=context,
     )
 
-    await m.process_action()
+    continue_flow = await m.process_action()
 
-    return APARTMENTS
+    if continue_flow:
+        return APARTMENTS
+
+    await send_start_message(update)
+    return START_ROUTES
 
 
 async def houses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -69,9 +77,13 @@ async def houses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context=context,
     )
 
-    await m.process_action()
+    continue_flow = await m.process_action()
 
-    return HOUSES
+    if continue_flow:
+        return HOUSES
+
+    await send_start_message(update)
+    return START_ROUTES
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
