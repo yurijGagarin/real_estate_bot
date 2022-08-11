@@ -9,5 +9,6 @@ RUN pip install -r requirements.txt
 COPY alembic /app/alembic/
 COPY bot /app/bot/
 COPY alembic.ini /app/
+COPY credentials /app/credentials/
 
 CMD alembic upgrade head && python -m bot.main
