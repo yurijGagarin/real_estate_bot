@@ -12,7 +12,20 @@ from bot.context.state import State
 from bot.db import get_result
 from bot.models import Ad
 from bot.navigation import main_menu_buttons, ACTION_NEXT, ACTION_BACK, MAIN_MENU, MAIN_MENU_TEXT, LOAD_MORE_LINKS_TEXT, \
-    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
+    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT, START_ROUTES
+
+SHOW_NEXT_PAGE = 'else'
+SHOW_ITEMS_PER_PAGE = 10
+NEXT_PAGE_BTN = [InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
+                                      callback_data='{"%s": 1}' % SHOW_NEXT_PAGE)]
+MAIN_MENU_BTN = [InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
+                                      callback_data='{"%s": 1}' % MAIN_MENU)]
+EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пошуку нічого не знайшлось.' \
+                    '\nСпробуйте змінити параметри пошуку,' \
+                    '\nабо підпишіться на розсилку нових оголошень.'
+BACK_BTN = [InlineKeyboardButton('Назад', callback_data='{"b":1}')]
+THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
+                       'Підпишись на розсилку щоб першим знати про нові оголошення'
 
 
 class Manager:
@@ -61,14 +74,15 @@ class Manager:
         elif ACTION_BACK in payload.callback:
             self.state.filters[self.state.filter_index] = None
             self.move_back()
-        elif 'else' in payload.callback:
+        elif SHOW_NEXT_PAGE in payload.callback:
             return await self.show_result()
         elif MAIN_MENU in payload.callback:
             reply_markup = await main_menu_buttons()
             await self.reset_state()
             return await self.update.callback_query.edit_message_text(text=MAIN_MENU_TEXT,
                                                                       reply_markup=reply_markup
-                                                                      )
+                                                               )
+            # return START_ROUTES    I tried to return another handler instead of return edit msg (no result)
         else:
             self.state.result_sliced_view = 0
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
@@ -77,6 +91,7 @@ class Manager:
         self.save_state()
 
     async def reset_state(self):
+        self.state.result_sliced_view = 0
         self.state.filters = []
         self.state.filter_index = 0
         self.save_state()
@@ -90,7 +105,7 @@ class Manager:
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
         if self.state.filter_index > 0:
-            kbrd.append([InlineKeyboardButton('Назад', callback_data='{"b":1}')])
+            kbrd.append(BACK_BTN)
 
         if self.active_filter.allow_next():
             next_text = 'Пропустити'
@@ -137,27 +152,35 @@ class Manager:
 
     async def show_result(self):
         q = await self.active_filter.build_query()
-        result = await get_result(q)
-        # TODO: handle empty result case !!!!!
-        if len(result) > 10:
-            sliced_result = result[self.state.result_sliced_view: (self.state.result_sliced_view + 10)]
-            self.state.result_sliced_view += 10
+        all_items_result = await get_result(q)
+        all_items_result_len = len(all_items_result)
+        has_pagination = all_items_result_len > SHOW_ITEMS_PER_PAGE
+        empty_result = not all_items_result_len
+
+        keyboard = []
+        items_result = all_items_result[
+                       self.state.result_sliced_view: (self.state.result_sliced_view + SHOW_ITEMS_PER_PAGE)]
+        text = THATS_ALL_FOLKS_TEXT
+
+        if has_pagination:
+            self.state.result_sliced_view += SHOW_ITEMS_PER_PAGE
             self.save_state()
+            text = LOAD_MORE_LINKS_BTN_TEXT
+            keyboard.append(NEXT_PAGE_BTN)
 
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
-                                                                       callback_data='{"else": 1}')],
-                                                 [InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
-                                                                       callback_data='{"%s": 1}' % MAIN_MENU)]
-                                                 ])
+        keyboard.append(MAIN_MENU_BTN)
+        reply_markup = InlineKeyboardMarkup(keyboard)
 
-            for link in sliced_result:
-                await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
-            await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
-                                                text=LOAD_MORE_LINKS_BTN_TEXT,
-                                                reply_markup=reply_markup)
-        else:
-            for link in result:
-                await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
+        if empty_result:
+            text = EMPTY_RESULT_TEXT
+            keyboard.append(BACK_BTN)
+            return await self.update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+
+        for link in items_result:
+            await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
+        await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
+                                            text=text,
+                                            reply_markup=reply_markup)
 
     def save_state(self):
         self.state.update_context(self.context)

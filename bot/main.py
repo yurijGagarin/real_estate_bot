@@ -1,6 +1,5 @@
 import re
 
-import telegram
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -61,10 +60,10 @@ async def houses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     m = Manager(
         model=Houses,
         filters=[
-            PriceFilter,
-            LivingAreaFilter,
             DistrictFilter,
             RoomsFilter,
+            LivingAreaFilter,
+            PriceFilter,
         ],
         update=update,
         context=context,

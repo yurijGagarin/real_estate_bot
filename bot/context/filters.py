@@ -102,8 +102,7 @@ class BaseFilter:
 
         keyboard = []
         row = []
-        i = 0
-        for item in items:
+        for i, item in enumerate(items):
             item_value = item
             data = json.dumps({
                 SELECTED_VALUES: i + (self.page_idx * ITEMS_PER_PAGE),
@@ -116,7 +115,6 @@ class BaseFilter:
             if len(row) == self.desired_amount_of_rows:
                 keyboard.append(row)
                 row = []
-            i += 1
         if len(row):
             keyboard.append(row)
 
@@ -352,15 +350,15 @@ class LivingAreaFilter(BaseFilter):
     model: Type[Houses]
 
     async def get_items(self):
-        living_areas = LIVING_AREAS.keys()
+        living_areas = list(LIVING_AREAS.keys())
         return living_areas
 
     @function_logger
     async def build_query(self):
         q = await self.get_query()
         # TODO rewrite better
-        area_from = []
-        area_to = []
+        area_from = [0]
+        area_to = [10000]
         for k, v in LIVING_AREAS.items():
             if self.values[k]:
                 area_from.append(v[0])

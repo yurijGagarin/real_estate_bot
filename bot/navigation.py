@@ -24,7 +24,7 @@ WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Обе
 START_BUTTONS = {
     'Оренда Квартир': APARTMENTS_STATE,
     'Орена Домів': HOUSES_STATE,
-    'Повідомлення про нові оголошення': NEW_REAL_ESTATE_ALARM_STATE,
+    # 'Повідомлення про нові оголошення': NEW_REAL_ESTATE_ALARM_STATE,
 }
 
 
