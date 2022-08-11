@@ -69,26 +69,25 @@ class Manager:
             if self.state.filter_index < len(self.filters) - 1:
                 self.move_forward()
             else:
-                return await self.show_result()
+                await self.show_result()
+                return True
 
         elif ACTION_BACK in payload.callback:
             self.state.filters[self.state.filter_index] = None
             self.move_back()
         elif SHOW_NEXT_PAGE in payload.callback:
-            return await self.show_result()
+            await self.show_result()
+            return True
         elif MAIN_MENU in payload.callback:
-            reply_markup = await main_menu_buttons()
             await self.reset_state()
-            return await self.update.callback_query.edit_message_text(text=MAIN_MENU_TEXT,
-                                                                      reply_markup=reply_markup
-                                                               )
-            # return START_ROUTES    I tried to return another handler instead of return edit msg (no result)
+            return False
         else:
             self.state.result_sliced_view = 0
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
 
         await self.edit_message()
         self.save_state()
+        return True
 
     async def reset_state(self):
         self.state.result_sliced_view = 0
