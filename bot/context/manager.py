@@ -11,8 +11,8 @@ from bot.context.payload import Payload
 from bot.context.state import State
 from bot.db import get_result
 from bot.models import Ad
-from bot.navigation import main_menu_buttons, ACTION_NEXT, ACTION_BACK, MAIN_MENU, MAIN_MENU_TEXT, LOAD_MORE_LINKS_TEXT, \
-    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT, START_ROUTES
+from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_TEXT, \
+    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
 
 SHOW_NEXT_PAGE = 'else'
 SHOW_ITEMS_PER_PAGE = 10
@@ -155,13 +155,12 @@ class Manager:
         all_items_result_len = len(all_items_result)
         has_pagination = all_items_result_len > SHOW_ITEMS_PER_PAGE
         empty_result = not all_items_result_len
-
         keyboard = []
         items_result = all_items_result[
                        self.state.result_sliced_view: (self.state.result_sliced_view + SHOW_ITEMS_PER_PAGE)]
-        text = THATS_ALL_FOLKS_TEXT
+        last_page = len(items_result) < SHOW_ITEMS_PER_PAGE
 
-        if has_pagination:
+        if has_pagination and not last_page:
             self.state.result_sliced_view += SHOW_ITEMS_PER_PAGE
             self.save_state()
             text = LOAD_MORE_LINKS_BTN_TEXT
@@ -174,6 +173,8 @@ class Manager:
             text = EMPTY_RESULT_TEXT
             keyboard.append(BACK_BTN)
             return await self.update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+        if last_page:
+            text = THATS_ALL_FOLKS_TEXT
 
         for link in items_result:
             await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)

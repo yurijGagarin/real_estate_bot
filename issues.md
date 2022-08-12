@@ -11,5 +11,6 @@
 - [x] add homes support
 - [x] get currencies from bank api
 - [x] next button works shitty
-- [ ] add back button
+- [ ] add back button everywhere 
 - [ ] add main menu button
+- [ ] fix back button at the end
