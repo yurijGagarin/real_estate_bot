@@ -7,6 +7,7 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, Message
 from telegram.ext import ContextTypes
 
 from bot.context.filters import BaseFilter
+from bot.context.message_forwarder import MessageForwarder
 from bot.context.payload import Payload
 from bot.context.state import State
 from bot.db import get_result
@@ -15,15 +16,15 @@ from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_
     MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
 
 SHOW_NEXT_PAGE = 'else'
-SHOW_ITEMS_PER_PAGE = 10
+SHOW_ITEMS_PER_PAGE = 3
 NEXT_PAGE_BTN = [InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
                                       callback_data='{"%s": 1}' % SHOW_NEXT_PAGE)]
-MAIN_MENU_BTN = [InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
-                                      callback_data='{"%s": 1}' % MAIN_MENU)]
+MAIN_MENU_BTN = InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
+                                     callback_data='{"%s": 1}' % MAIN_MENU)
 EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пошуку нічого не знайшлось.' \
                     '\nСпробуйте змінити параметри пошуку,' \
                     '\nабо підпишіться на розсилку нових оголошень.'
-BACK_BTN = [InlineKeyboardButton('Назад', callback_data='{"b":1}')]
+BACK_BTN = InlineKeyboardButton('Назад', callback_data='{"b":1}')
 THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
                        'Підпишись на розсилку щоб першим знати про нові оголошення'
 
@@ -34,16 +35,13 @@ class Manager:
     context: ContextTypes.DEFAULT_TYPE
     update: Update
 
-    def __init__(self,
-                 model: Type[Ad],
-                 filters: List[Type[BaseFilter]],
-                 update: Update,
-                 context: ContextTypes.DEFAULT_TYPE,
-                 ):
+    def __init__(self, model: Type[Ad], filters: List[Type[BaseFilter]], update: Update,
+                 context: ContextTypes.DEFAULT_TYPE, forwarder: MessageForwarder):
         self.update = update
         self.context = context
         self.state = State.from_context(context)
         self.filters = []
+        self.forwarder = forwarder
 
         prev_filter = None
         for i in range(len(filters)):
@@ -73,6 +71,8 @@ class Manager:
                 return True
 
         elif ACTION_BACK in payload.callback:
+            if self.state.filter_index == 0:
+                return False
             self.state.filters[self.state.filter_index] = None
             self.move_back()
         elif SHOW_NEXT_PAGE in payload.callback:
@@ -82,7 +82,6 @@ class Manager:
             await self.reset_state()
             return False
         else:
-            self.state.result_sliced_view = 0
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
 
         await self.edit_message()
@@ -90,7 +89,7 @@ class Manager:
         return True
 
     async def reset_state(self):
-        self.state.result_sliced_view = 0
+        self.state.result_sliced_view = None
         self.state.filters = []
         self.state.filter_index = 0
         self.save_state()
@@ -99,12 +98,16 @@ class Manager:
         self.state.filter_index += 1
 
     def move_back(self):
+        last_filter = len(self.state.filters) - 1
+        if self.state.filter_index == last_filter and self.state.result_sliced_view is not None:
+            self.state.result_sliced_view = None
+            return
         self.state.filter_index -= 1
 
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
-        if self.state.filter_index > 0:
-            kbrd.append(BACK_BTN)
+        if self.state.filter_index >= 0:
+            kbrd.append([BACK_BTN])
 
         if self.active_filter.allow_next():
             next_text = 'Пропустити'
@@ -149,6 +152,9 @@ class Manager:
 
         return Payload(message=message, callback=callback)
 
+    def get_message_id_from_link(self, link):
+        return int(link.split('/')[-1].split('?')[0])
+
     async def show_result(self):
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q)
@@ -156,28 +162,32 @@ class Manager:
         has_pagination = all_items_result_len > SHOW_ITEMS_PER_PAGE
         empty_result = not all_items_result_len
         keyboard = []
+        page_offset = self.state.result_sliced_view or 0
         items_result = all_items_result[
-                       self.state.result_sliced_view: (self.state.result_sliced_view + SHOW_ITEMS_PER_PAGE)]
+                       page_offset: (page_offset + SHOW_ITEMS_PER_PAGE)]
         last_page = len(items_result) < SHOW_ITEMS_PER_PAGE
-
+        text = ''
         if has_pagination and not last_page:
-            self.state.result_sliced_view += SHOW_ITEMS_PER_PAGE
-            self.save_state()
+            page_offset += SHOW_ITEMS_PER_PAGE
             text = LOAD_MORE_LINKS_BTN_TEXT
             keyboard.append(NEXT_PAGE_BTN)
-
-        keyboard.append(MAIN_MENU_BTN)
+        self.state.result_sliced_view = page_offset
+        self.save_state()
+        keyboard.append([BACK_BTN, MAIN_MENU_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if empty_result:
             text = EMPTY_RESULT_TEXT
-            keyboard.append(BACK_BTN)
             return await self.update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
         if last_page:
             text = THATS_ALL_FOLKS_TEXT
 
-        for link in items_result:
-            await self.context.bot.send_message(chat_id=self.update.effective_chat.id, text=link)
+        message_ids = [self.get_message_id_from_link(link) for link in items_result]
+
+        await self.forwarder.forward_messages(
+            message_ids=message_ids,
+            chat_id=self.update.effective_user.id,
+        )
         await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
                                             text=text,
                                             reply_markup=reply_markup)

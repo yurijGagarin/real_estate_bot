@@ -8,9 +8,12 @@ services:
       TOKEN: '${TOKEN}'
       DEBUG: '${DEBUG}'
       SPREADSHEET_ID: '${SPREADSHEET_ID}'
+      FROM_CHAT_ID: '${FROM_CHAT_ID}'
+      API_HASH: '${API_HASH}'
+      API_ID: '${API_ID}'
     restart: always
-#    volumes:
-#      -
+    volumes:
+      - ./bot.db:/app/bot.db
     logging:
         options:
             max-size: 1m

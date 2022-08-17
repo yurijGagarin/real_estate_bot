@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 
 class State:
 
-    def __init__(self, result_sliced_view=0, filter_index=0, filters=None):
+    def __init__(self, result_sliced_view=None, filter_index=0, filters=None):
         self.result_sliced_view = result_sliced_view
         self.filter_index = filter_index
         self.filters = filters if filters is not None else []
@@ -22,7 +22,7 @@ class State:
         data = json.loads(raw_data)
 
         return cls(
-            result_sliced_view=data.get('rsv') or 0,
+            result_sliced_view=data.get('rsv'),
             filter_index=data.get('i') or 0,
             filters=data.get('f') or []
         )

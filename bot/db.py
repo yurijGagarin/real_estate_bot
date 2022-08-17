@@ -45,3 +45,19 @@ async def get_result(source_query: Select):
         value = result.fetchall()
         print(value)
         return [v[0] for v in value]
+
+
+async def get_user(update):
+    async with async_session() as session:
+        user = await session.get(bot.models.User, update.effective_user.id)
+        if not user:
+            user = bot.models.User(
+                id=update.effective_user.id,
+                nickname=update.effective_user.username,
+            )
+            session.add(user)
+            await session.commit()
+    return user
+
+
+

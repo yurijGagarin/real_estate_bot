@@ -6,6 +6,8 @@ import click
 
 from bot.api.google import GoogleApi
 from bot.data_manager import DataManager
+from bot.db import async_session
+import bot.models
 
 
 @click.group()
@@ -42,6 +44,18 @@ async def sync_data():
     data_manager = DataManager()
     await data_manager.sync_data()
 
+
+@cli.command()
+@click.argument('user_id', type=click.INT)
+@coro
+async def user_to_admin(user_id):
+
+    async with async_session() as session:
+        user = await session.get(bot.models.User, user_id)
+        if user and not user.is_admin:
+            user.is_admin = True
+            session.add(user)
+        await session.commit()
 
 if __name__ == "__main__":
     cli()

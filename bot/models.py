@@ -17,9 +17,8 @@ class User(Base):
     nickname = Column(String)
 
     def __repr__(self):
-        return "<User(id='%s' name='%s', nickname='%s')>" % (
+        return "<User(id='%s', nickname='%s')>" % (
             self.id,
-            self.name,
             self.nickname,
         )
 
@@ -62,3 +61,5 @@ class Houses(Ad):
             self.living_area,
             self.link,
         )
+
+
