@@ -275,12 +275,12 @@ class PriceFilter(BaseFilter):
     has_select_all = False
 
     async def build_text(self):
-        from_text = 'від ' + str(self.values['price_from'])
-        to_text = 'до ' + str(self.values['price_to'])
+        from_text = 'від ' + str(self.values['price_from']) + 'грн'
+        to_text = 'до ' + str(self.values['price_to']) + 'грн'
         if not self.values['price_from']:
-            return 'Введіть нижню межу ціни 👇'
+            return 'Введіть нижню межу ціни у грн 👇'
         elif not self.values['price_to']:
-            return f'{self.name}: ' + from_text + ' \nВведіть верхню межу ціни 👇'
+            return f'{self.name}: ' + from_text + ' \nВведіть верхню межу ціни у грн 👇 '
         else:
             return f'{self.name}: ' + from_text + ' ' + to_text
 

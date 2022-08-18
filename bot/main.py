@@ -115,7 +115,6 @@ def main() -> None:
             "filters": [
                 DistrictFilter,
                 RoomsFilter,
-                LivingAreaFilter,
                 PriceFilter,
             ],
             "stage": HOUSES,
