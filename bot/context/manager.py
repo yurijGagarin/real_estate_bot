@@ -209,4 +209,9 @@ class Manager:
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized
+        # text = ['Обрані фільтри:']
+        # for i in range(self.state.filter_index + 1):
+        #     f = self.filters[i]
+        #     text.append(await f.build_text())
+        # user.subscription_text = '\n'.join(text)
         await save_user(user)
