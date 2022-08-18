@@ -11,6 +11,9 @@ class MessageForwarder:
         self.app = app
         self.from_chat_id = from_chat_id
 
+    def get_message_id_from_link(self, link):
+        return int(link.split('/')[-1].split('?')[0])
+
     async def forward_messages(self, message_ids: List[int], chat_id: int):
         for message_id in message_ids:
             await self.forward_message(message_id=message_id, chat_id=chat_id)
@@ -21,4 +24,11 @@ class MessageForwarder:
             chat_id=chat_id,
             from_chat_id=self.from_chat_id,
             message_ids=[m.message_id for m in media_group],
+        )
+
+    async def forward_estates_to_user(self, user_id: int, links: List[str]):
+        message_ids = [self.get_message_id_from_link(link) for link in links]
+        await self.forward_messages(
+            message_ids=message_ids,
+            chat_id=user_id,
         )

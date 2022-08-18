@@ -14,16 +14,14 @@ from telegram.ext import (
 )
 
 from bot import config
-from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, LivingAreaFilter, \
-    BaseFilter
+from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
 from bot.data_manager import DataManager
-from bot.db import get_user
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
-from bot.navigation import main_menu_buttons, START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    END_ROUTES, APARTMENTS, WELCOME_TEXT, HOUSES, REFRESH_DB, get_main_menu
+from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
+    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, get_main_menu
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -34,8 +32,6 @@ logger = logging.getLogger(__name__)
 async def sync_data():
     data_manager = DataManager()
     await data_manager.sync_data()
-
-
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

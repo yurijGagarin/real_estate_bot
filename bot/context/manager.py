@@ -152,9 +152,6 @@ class Manager:
 
         return Payload(message=message, callback=callback)
 
-    def get_message_id_from_link(self, link):
-        return int(link.split('/')[-1].split('?')[0])
-
     async def show_result(self):
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q)
@@ -182,12 +179,7 @@ class Manager:
         if last_page:
             text = THATS_ALL_FOLKS_TEXT
 
-        message_ids = [self.get_message_id_from_link(link) for link in items_result]
-
-        await self.forwarder.forward_messages(
-            message_ids=message_ids,
-            chat_id=self.update.effective_user.id,
-        )
+        await self.forwarder.forward_estates_to_user(user_id=self.update.effective_user.id, links=items_result)
         await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
                                             text=text,
                                             reply_markup=reply_markup)
