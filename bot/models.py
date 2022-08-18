@@ -1,8 +1,10 @@
+import datetime
+
 from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean,
+    Boolean, DateTime, Text,
 )
 from sqlalchemy.orm import declarative_base
 
@@ -15,6 +17,8 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     is_admin = Column(Boolean, default=False)
     nickname = Column(String)
+    last_viewed_at = Column(DateTime, default=datetime.datetime.utcnow)
+    subscription = Column(Text, nullable=True)
 
     def __repr__(self):
         return "<User(id='%s', nickname='%s')>" % (
@@ -31,6 +35,8 @@ class Ad(Base):
     link = Column(String, nullable=False)
     rooms = Column(Integer, nullable=False)
     district = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
 
 
 class Apartments(Ad):

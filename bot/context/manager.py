@@ -1,4 +1,5 @@
 import json
+from sqlalchemy.ext.serializer import dumps
 from json import JSONDecodeError
 from typing import Type, List
 
@@ -10,7 +11,7 @@ from bot.context.filters import BaseFilter
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.payload import Payload
 from bot.context.state import State
-from bot.db import get_result
+from bot.db import get_result, get_user, save_user
 from bot.models import Ad
 from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_TEXT, \
     MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
@@ -25,6 +26,7 @@ EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пош�
                     '\nСпробуйте змінити параметри пошуку,' \
                     '\nабо підпишіться на розсилку нових оголошень.'
 BACK_BTN = InlineKeyboardButton('Назад', callback_data='{"b":1}')
+SUBSCRIPTION_BTN = InlineKeyboardButton('Підписатися на оновлення', callback_data='{"sub":1}')
 THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
                        'Підпишись на розсилку щоб першим знати про нові оголошення'
 
@@ -90,6 +92,10 @@ class Manager:
             return True
         elif MAIN_MENU in payload.callback:
             await self.reset_state()
+            return False
+        elif "sub" in payload.callback: #TODO: use constant
+            await self.create_subscription()
+            # TODO:  add message
             return False
         else:
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
@@ -181,6 +187,7 @@ class Manager:
         self.state.result_sliced_view = page_offset
         self.save_state()
         keyboard.append([BACK_BTN, MAIN_MENU_BTN])
+        keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if empty_result:
@@ -196,3 +203,10 @@ class Manager:
 
     def save_state(self):
         self.state.update_context(self.context)
+
+    async def create_subscription(self):
+        user = await get_user(self.update)
+        query = await self.active_filter.build_query()
+        serialized = dumps(query)
+        user.subscription = serialized
+        await save_user(user)

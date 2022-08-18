@@ -1,9 +1,13 @@
+import datetime
+from operator import or_, not_
 from typing import Dict, List, Type
 
-from sqlalchemy import select, column, Column
+from sqlalchemy import select, column, Column, delete, MetaData
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.ext.serializer import loads
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import Select
+from telegram import Update
 
 import bot.models
 from bot.config import DB_URI
@@ -18,12 +22,34 @@ async def remove_data_from_db(model_name):
         await session.commit()
 
 
-async def add_objects_to_db(db: Type[bot.models.Ad], data: List[Dict[str, str]]):
+def is_data_new_for_instance(data: Dict[str, str], instance: bot.models.Ad):
+    for k, v in data.items():
+        if v != getattr(instance, k):
+            return True
+    return False
+
+
+async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, str]]):
+    updated_date = datetime.datetime.utcnow()
     async with async_session() as session:
         for datum in data:
-            obj = db(**datum)
-            session.add(obj)
+            instance = await session.get(model, datum['id'])
+            if instance is None:
+                instance = model(**datum)
+                instance.updated_at = updated_date
+            else:
+                if is_data_new_for_instance(datum, instance):
+                    for k, v in datum.items():
+                        setattr(instance, k, v)
+                    instance.created_at = updated_date
+                instance.updated_at = updated_date
+            session.add(instance)
+
         await session.commit()
+        delete_stmt = delete(model).where(or_(model.updated_at < updated_date, model.updated_at.is_(None)))
+        await session.execute(delete_stmt)
+        await session.commit()
+        print(delete_stmt)
 
 
 async def get_unique_el_from_db(source_query: Select, col: Column):
@@ -47,7 +73,7 @@ async def get_result(source_query: Select):
         return [v[0] for v in value]
 
 
-async def get_user(update):
+async def get_user(update: Update):
     async with async_session() as session:
         user = await session.get(bot.models.User, update.effective_user.id)
         if not user:
@@ -60,4 +86,39 @@ async def get_user(update):
     return user
 
 
+async def save_user(user: bot.models.User):
+    async with async_session() as session:
+        session.add(user)
+        await session.commit()
+    return user
 
+
+async def get_users_with_subscription() -> List[bot.models.User]:
+    async with async_session() as session:
+        stmt = select(bot.models.User).where(bot.models.User.subscription != None)
+        users = await session.execute(stmt)
+        return [u[0] for u in users]
+
+
+async def get_user_subscription(user: bot.models.User) -> List[str]:
+    async with async_session() as session:
+        serialized = user.subscription
+        src_query = loads(serialized, bot.models.Base.metadata, session)
+        table = src_query.froms[0]
+        query = src_query\
+            .filter(table.c.created_at > user.last_viewed_at)\
+            .order_by(table.c.created_at)\
+            .limit(3)
+
+        result = await session.execute(query)
+
+        rows = result.fetchall()
+        links = []
+        last_viewed_at = None
+        for row in rows:
+            links.append(row[0].link)
+            last_viewed_at = row[0].created_at
+        if last_viewed_at is not None:
+            user.last_viewed_at = last_viewed_at
+            await save_user(user)
+        return links

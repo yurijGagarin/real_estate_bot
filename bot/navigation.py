@@ -81,6 +81,7 @@ async def subscription_buttons(user):
     # if user.subscription:
     #     keyboard.append([InlineKeyboardButton("Відмінити підписку",
     #                                           callback_data=CANCEL_SUBSCRIPTION)])
+    # TODO: add handler user.subscription = None save_user(user)
     reply_markup = InlineKeyboardMarkup(keyboard)
     return reply_markup
 

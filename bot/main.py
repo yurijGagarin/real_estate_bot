@@ -22,8 +22,7 @@ from bot.data_manager import DataManager
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
 from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, show_subscription_menu, \
-    APARTMENTS_SUB, HOUSES_SUB
+    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, show_subscription_menu
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -31,9 +30,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def sync_data():
+async def sync_data(forwarder: MessageForwarder):
     data_manager = DataManager()
     await data_manager.sync_data()
+    await data_manager.notify_users(forwarder)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -45,11 +45,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return START_ROUTES
 
 
-async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info('success sync')
-    await sync_data()
-    await context.bot.send_message(update.effective_user.id, 'База даних оновлена.\nГарного вам дня 😊')
-    return START_ROUTES
+def create_refresh_handler(forwarder: MessageForwarder):
+    async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logger.info('success sync')
+        await sync_data(forwarder=forwarder)
+        await context.bot.send_message(update.effective_user.id, 'База даних оновлена.\nГарного вам дня 😊')
+        return START_ROUTES
+
+    return refresh_handler
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -148,7 +151,7 @@ def main() -> None:
             START_ROUTES: [
                 CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
-                CallbackQueryHandler(refresh_handler, pattern="^" + str(REFRESH_DB) + "$"),
+                CallbackQueryHandler(create_refresh_handler(forwarder=forwarder), pattern="^" + str(REFRESH_DB) + "$"),
                 CallbackQueryHandler(subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$")
 
             ],
@@ -175,13 +178,13 @@ def main() -> None:
     application.add_handler(conv_handler)
     loop = asyncio.get_event_loop()
 
-    loop.create_task(start_schedules(application.bot))
+    loop.create_task(start_schedules(forwarder))
     application.run_polling()
-    app.stop()
+    # app.stop()
 
 
-async def start_schedules(bot):
-    schedule.every(1).hours.do(sync_data)
+async def start_schedules(forwarder: MessageForwarder):
+    schedule.every(1).hours.do(sync_data, forwarder=forwarder)
 
     while True:
         await asyncio.sleep(60)

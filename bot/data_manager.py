@@ -1,8 +1,11 @@
+from telegram import Bot
+
 import bot
 from bot.api.google import GoogleApi
-from bot.db import remove_data_from_db, add_objects_to_db
+from bot.context.message_forwarder import MessageForwarder
+from bot.db import remove_data_from_db, sync_objects_to_db, get_users_with_subscription, get_user_subscription
 from bot.log import logging
-from bot.models import Apartments, Houses
+from bot.models import Apartments, Houses, User
 
 CAT_APARTMENTS = 'Apartments'
 CAT_HOUSES = 'Houses'
@@ -148,11 +151,16 @@ class DataManager:
     async def sync_apartments(self):
         data = self.get_sheet_data(CATEGORIES[CAT_APARTMENTS], MAPPING_APARTS)
 
-        await remove_data_from_db(Apartments)
-        await add_objects_to_db(bot.models.Apartments, data)
+        await sync_objects_to_db(bot.models.Apartments, data)
 
     async def sync_houses(self):
         data = self.get_sheet_data(CATEGORIES[CAT_HOUSES], MAPPING_HOUSES)
 
-        await remove_data_from_db(Houses)
-        await add_objects_to_db(bot.models.Houses, data)
+        await sync_objects_to_db(bot.models.Houses, data)
+
+    async def notify_users(self, forwarder: MessageForwarder):
+        users = await get_users_with_subscription()
+        for user in users:
+            result = await get_user_subscription(user)
+            if len(result) > 0:
+                await forwarder.forward_estates_to_user(user.id, result)
