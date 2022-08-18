@@ -5,16 +5,19 @@ from telegram.ext import ContextTypes
 
 class State:
 
-    def __init__(self, result_sliced_view=None, filter_index=0, filters=None):
+    def __init__(self, result_sliced_view=None, filter_index=0, filters=None, is_subscription=False):
         self.result_sliced_view = result_sliced_view
         self.filter_index = filter_index
         self.filters = filters if filters is not None else []
+        self.is_subscription = is_subscription
 
     def to_json(self):
         return json.dumps({
             'rsv': self.result_sliced_view,
             'i': self.filter_index,
             'f': self.filters,
+            'sbcsr_mode': self.is_subscription
+
         })
 
     @classmethod
@@ -24,7 +27,8 @@ class State:
         return cls(
             result_sliced_view=data.get('rsv'),
             filter_index=data.get('i') or 0,
-            filters=data.get('f') or []
+            filters=data.get('f') or [],
+            is_subscription=data.get('sbcsr_mode')
         )
 
     @classmethod

@@ -17,11 +17,13 @@ from bot import config
 from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
+from bot.context.state import State
 from bot.data_manager import DataManager
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
 from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, get_main_menu
+    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, show_subscription_menu, \
+    APARTMENTS_SUB, HOUSES_SUB
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -38,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
 
-    await get_main_menu(update)
+    await show_main_menu(update, context)
 
     return START_ROUTES
 
@@ -51,7 +53,12 @@ async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    pass
+    state = State.from_context(context)
+    state.is_subscription = True
+    state.update_context(context)
+    await show_subscription_menu(update)
+
+    return SUBSCRIPTION
 
 
 async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -79,7 +86,7 @@ def create_filter_handler(model: Type[Ad], filters: List[Type[BaseFilter]], stag
         if continue_flow:
             return stage
 
-        await get_main_menu(update)
+        await show_main_menu(update, context)
         return START_ROUTES
 
     return handler
@@ -122,6 +129,7 @@ def main() -> None:
         filters=FILTERS[APARTMENTS]["filters"],
         stage=FILTERS[APARTMENTS]["stage"],
         forwarder=forwarder,
+
     )
     houses_handler = create_filter_handler(
         model=FILTERS[HOUSES]["model"],
@@ -140,7 +148,8 @@ def main() -> None:
             START_ROUTES: [
                 CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
-                CallbackQueryHandler(refresh_handler, pattern="^" + str(REFRESH_DB) + "$")
+                CallbackQueryHandler(refresh_handler, pattern="^" + str(REFRESH_DB) + "$"),
+                CallbackQueryHandler(subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$")
 
             ],
             APARTMENTS: [
@@ -150,6 +159,10 @@ def main() -> None:
             HOUSES: [
                 CallbackQueryHandler(houses_handler),
                 MessageHandler(filters.Regex(re.compile(r'[0-9]+', re.IGNORECASE)), houses_handler),
+            ],
+            SUBSCRIPTION: [
+                CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
+                CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
 
             ],
             END_ROUTES: [

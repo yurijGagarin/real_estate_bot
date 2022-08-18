@@ -60,6 +60,10 @@ class Manager:
     def active_filter(self):
         return self.filters[self.state.filter_index]
 
+    @property
+    def is_subscription(self):
+        return self.state.is_subscription
+
     async def process_action(self):
         payload = self.get_payload()
 
@@ -67,6 +71,12 @@ class Manager:
             if self.state.filter_index < len(self.filters) - 1:
                 self.move_forward()
             else:
+                if self.is_subscription:
+                    text = "Ваші параметри пошуку успішно збережені."
+                    await self.reset_state()
+                    await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
+                                                        text=text)
+                    return False
                 await self.show_result()
                 return True
 
