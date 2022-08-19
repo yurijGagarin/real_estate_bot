@@ -16,10 +16,7 @@ class MessageForwarder:
 
     async def forward_messages(self, message_ids: List[int], chat_id: int):
         for message_id in message_ids:
-            try:
-                await self.forward_message(message_id=message_id, chat_id=chat_id)
-            except ValueError:
-                ...
+            await self.forward_message(message_id=message_id, chat_id=chat_id)
 
     async def forward_message(self, message_id: int, chat_id: int):
         messages = await self.app.get_messages(chat_id=self.from_chat_id, message_ids=[message_id])

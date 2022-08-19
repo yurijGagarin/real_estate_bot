@@ -120,12 +120,13 @@ def create_filter_handler(model: Type[Ad], filters: List[Type[BaseFilter]], stag
 
 def main() -> None:
     application = Application.builder().token(config.TOKEN).build()
-    app = Client(session_name=config.SESSION_NAME,
+    app = Client(name=config.SESSION_NAME,
                  api_id=config.API_ID, api_hash=config.API_HASH,
                  bot_token=config.TOKEN,
                  no_updates=True
                  )
     app.start()
+    app.resolve_peer(5298182327)
     forwarder = MessageForwarder(app=app, from_chat_id=config.FROM_CHAT_ID)
 
     FILTERS = {
