@@ -122,3 +122,12 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
             user.last_viewed_at = last_viewed_at
             await save_user(user)
         return links
+
+# async def save_subscription_text(user_id: int, subscription_text: List):
+#     async with async_session() as session:
+#         user = await session.get(bot.models.User, user_id)
+#         user.subscription_text = subscription_text
+#         session.add(user)
+#         await session.commit()
+#     return user
+

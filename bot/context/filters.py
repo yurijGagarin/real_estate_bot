@@ -37,7 +37,6 @@ class BaseFilter:
     unselect_all_text = 'Зняти виділення з усіх'
     has_select_all: bool
     desired_amount_of_rows: int = 2
-    skip_filters_text = 'Без різниці'
 
     def __init__(self,
                  model: Type[Ad],
@@ -165,7 +164,7 @@ class BaseFilter:
         # return len(list(filter(None, self.values.values())))
         return True
 
-    async def build_text(self):
+    async def build_text(self, is_final=False):
         items = await self.get_items()
         values = 'не вибрано'
         if len(list(filter(None, self.values.values()))):
@@ -223,7 +222,7 @@ class ResidentialComplexFilter(ColumnFilter):
 class RoomsFilter(BaseFilter):
     name = 'Кількість кімнат'
 
-    max_rooms = 4
+    max_rooms = 3
     has_select_all = False
 
     def __init__(self,
@@ -274,13 +273,16 @@ class PriceFilter(BaseFilter):
     name = 'Ціна'
     has_select_all = False
 
-    async def build_text(self):
+    async def build_text(self, is_final=False):
         from_text = 'від ' + str(self.values['price_from']) + 'грн'
         to_text = 'до ' + str(self.values['price_to']) + 'грн'
-        if not self.values['price_from']:
-            return 'Введіть нижню межу ціни у грн 👇'
+        if not self.has_values() and is_final:
+            return f'{self.name}: ' + 'Весь діапазон цін'
+        elif not self.values['price_from']:
+            return 'Введіть min ціну у гривні від якої розглядаєте 👇'
         elif not self.values['price_to']:
-            return f'{self.name}: ' + from_text + ' \nВведіть верхню межу ціни у грн 👇 '
+            return f'{self.name}: ' + from_text + ' \nВведіть max ціну у гривні до якої розглядаєте 👇'
+
         else:
             return f'{self.name}: ' + from_text + ' ' + to_text
 

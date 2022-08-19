@@ -4,8 +4,9 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean, DateTime, Text,
+    Boolean, DateTime, Text, PickleType,
 )
+from sqlalchemy.ext.mutable import MutableList
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -19,6 +20,7 @@ class User(Base):
     nickname = Column(String)
     last_viewed_at = Column(DateTime, default=datetime.datetime.utcnow)
     subscription = Column(Text, nullable=True)
+    subscription_text = Column(Text, nullable=True)
 
     def __repr__(self):
         return "<User(id='%s', nickname='%s')>" % (

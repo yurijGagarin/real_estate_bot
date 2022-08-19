@@ -1,8 +1,8 @@
 import json
-from sqlalchemy.ext.serializer import dumps
 from json import JSONDecodeError
 from typing import Type, List
 
+from sqlalchemy.ext.serializer import dumps
 from sqlalchemy.sql import Select
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, Message
 from telegram.ext import ContextTypes
@@ -14,21 +14,8 @@ from bot.context.state import State
 from bot.db import get_result, get_user, save_user
 from bot.models import Ad
 from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_TEXT, \
-    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT
-
-SHOW_NEXT_PAGE = 'else'
-SHOW_ITEMS_PER_PAGE = 3
-NEXT_PAGE_BTN = [InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
-                                      callback_data='{"%s": 1}' % SHOW_NEXT_PAGE)]
-MAIN_MENU_BTN = InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
-                                     callback_data='{"%s": 1}' % MAIN_MENU)
-EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пошуку нічого не знайшлось.' \
-                    '\nСпробуйте змінити параметри пошуку,' \
-                    '\nабо підпишіться на розсилку нових оголошень.'
-BACK_BTN = InlineKeyboardButton('Назад', callback_data='{"b":1}')
-SUBSCRIPTION_BTN = InlineKeyboardButton('Підписатися на оновлення', callback_data='{"sub":1}')
-THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
-                       'Підпишись на розсилку щоб першим знати про нові оголошення'
+    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT, SUBSCRIPTION_MODE, SHOW_NEXT_PAGE, BACK_BTN, SHOW_ITEMS_PER_PAGE, \
+    NEXT_PAGE_BTN, MAIN_MENU_BTN, SUBSCRIPTION_BTN, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, show_subscription_menu
 
 
 class Manager:
@@ -74,10 +61,7 @@ class Manager:
                 self.move_forward()
             else:
                 if self.is_subscription:
-                    text = "Ваші параметри пошуку успішно збережені."
-                    await self.reset_state()
-                    await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
-                                                        text=text)
+                    await self.create_subscription()
                     return False
                 await self.show_result()
                 return True
@@ -93,9 +77,8 @@ class Manager:
         elif MAIN_MENU in payload.callback:
             await self.reset_state()
             return False
-        elif "sub" in payload.callback: #TODO: use constant
+        elif SUBSCRIPTION_MODE in payload.callback:
             await self.create_subscription()
-            # TODO:  add message
             return False
         else:
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
@@ -209,9 +192,12 @@ class Manager:
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized
-        # text = ['Обрані фільтри:']
-        # for i in range(self.state.filter_index + 1):
-        #     f = self.filters[i]
-        #     text.append(await f.build_text())
-        # user.subscription_text = '\n'.join(text)
+        text = ['Обрані фільтри:']
+        for i in range(self.state.filter_index + 1):
+            f = self.filters[i]
+            text.append(await f.build_text(is_final=True))
+        user.subscription_text = '\n'.join(text)
         await save_user(user)
+        await self.reset_state()
+
+        await show_subscription_menu(self.update)
