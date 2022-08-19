@@ -114,13 +114,10 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
 
         rows = result.fetchall()
         links = []
-        last_viewed_at = None
         for row in rows:
             links.append(row[0].link)
-            last_viewed_at = row[0].created_at
-        if last_viewed_at is not None:
-            user.last_viewed_at = last_viewed_at
-            await save_user(user)
+        user.last_viewed_at = datetime.datetime.utcnow()
+        await save_user(user)
         return links
 
 # async def save_subscription_text(user_id: int, subscription_text: List):

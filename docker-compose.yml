@@ -13,7 +13,7 @@ services:
       API_ID: '${API_ID}'
     restart: always
     volumes:
-      - ./bot.db:/app/bot.db
+      - ./data:/app/data
     logging:
         options:
             max-size: 1m

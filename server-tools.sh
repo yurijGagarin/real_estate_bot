@@ -45,19 +45,19 @@ case $1 in
         echo "./server-tools.sh {command}"
         ;;
     "logs" )
-        ssh $SERVER_NAME "cd $SERVER_DIR && docker-compose logs -f"
+        ssh $SERVER_NAME "cd $SERVER_DIR && docker compose logs -f"
         ;;
     "ssh" )
         ssh $SERVER_NAME
         ;;
     "start" )
-        ssh $SERVER_NAME "cd $SERVER_DIR && docker-compose start"
+        ssh $SERVER_NAME "cd $SERVER_DIR && docker compose start"
         ;;
     "stop" )
-        ssh $SERVER_NAME "cd $SERVER_DIR && docker-compose stop"
+        ssh $SERVER_NAME "cd $SERVER_DIR && docker compose stop"
         ;;
     "restart" )
-        ssh $SERVER_NAME "cd $SERVER_DIR && docker-compose restart"
+        ssh $SERVER_NAME "cd $SERVER_DIR && docker compose restart"
         ;;
     "htop" )
         ssh $SERVER_NAME -t  "htop -d 10"
@@ -79,6 +79,6 @@ case $1 in
         done
         ssh $SERVER_NAME "mkdir -p $SERVER_DIR && cd $SERVER_DIR"
         rsync -avz $EXCLUDE . $SERVER_NAME:$SERVER_DIR
-        ssh $SERVER_NAME "cd $SERVER_DIR && docker-compose build && docker-compose up -d"
+        ssh $SERVER_NAME "cd $SERVER_DIR && docker compose build && docker compose up -d"
         ;;
 esac

@@ -1,3 +1,4 @@
+import datetime
 import json
 from json import JSONDecodeError
 from typing import Type, List
@@ -61,7 +62,9 @@ class Manager:
                 self.move_forward()
             else:
                 if self.is_subscription:
+
                     await self.create_subscription()
+
                     return False
                 await self.show_result()
                 return True
@@ -79,6 +82,7 @@ class Manager:
             return False
         elif SUBSCRIPTION_MODE in payload.callback:
             await self.create_subscription()
+            await show_subscription_menu(self.update)
             return False
         else:
             self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
@@ -197,7 +201,7 @@ class Manager:
             f = self.filters[i]
             text.append(await f.build_text(is_final=True))
         user.subscription_text = '\n'.join(text)
+        user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
         await self.reset_state()
 
-        await show_subscription_menu(self.update)
