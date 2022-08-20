@@ -12,11 +12,13 @@ from bot.context.filters import BaseFilter
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.payload import Payload
 from bot.context.state import State
-from bot.db import get_result, get_user, save_user
+from bot.db import get_result, get_user, save_user, delete_model_by_link, get_model_by_link
+from bot.exceptions import MessageNotFound
 from bot.models import Ad
-from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_TEXT, \
-    MAIN_MENU_BTN_TEXT, LOAD_MORE_LINKS_BTN_TEXT, SUBSCRIPTION_MODE, SHOW_NEXT_PAGE, BACK_BTN, SHOW_ITEMS_PER_PAGE, \
+from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_BTN_TEXT, SUBSCRIPTION_MODE, \
+    SHOW_NEXT_PAGE, BACK_BTN, SHOW_ITEMS_PER_PAGE, \
     NEXT_PAGE_BTN, MAIN_MENU_BTN, SUBSCRIPTION_BTN, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, show_subscription_menu
+from bot.notifications import notify_admins
 
 
 class Manager:
@@ -24,6 +26,7 @@ class Manager:
     query: Select
     context: ContextTypes.DEFAULT_TYPE
     update: Update
+    model: Type[Ad]
 
     def __init__(self, model: Type[Ad], filters: List[Type[BaseFilter]], update: Update,
                  context: ContextTypes.DEFAULT_TYPE, forwarder: MessageForwarder):
@@ -32,6 +35,7 @@ class Manager:
         self.state = State.from_context(context)
         self.filters = []
         self.forwarder = forwarder
+        self.model = model
 
         prev_filter = None
         for i in range(len(filters)):
@@ -62,7 +66,6 @@ class Manager:
                 self.move_forward()
             else:
                 if self.is_subscription:
-
                     await self.create_subscription()
 
                     return False
@@ -156,8 +159,18 @@ class Manager:
         return Payload(message=message, callback=callback)
 
     async def show_result(self):
+        while True:
+            try:
+                await self._show_result()
+                break
+            except MessageNotFound as e:
+                print(e.message_link)
+                await self.notify_admins_about_bad_link(e.message_link)
+                await delete_model_by_link(self.model, e.message_link)
+
+    async def _show_result(self):
         q = await self.active_filter.build_query()
-        all_items_result = await get_result(q)
+        all_items_result = await get_result(q, self.model)
         all_items_result_len = len(all_items_result)
         has_pagination = all_items_result_len > SHOW_ITEMS_PER_PAGE
         empty_result = not all_items_result_len
@@ -171,8 +184,7 @@ class Manager:
             page_offset += SHOW_ITEMS_PER_PAGE
             text = LOAD_MORE_LINKS_BTN_TEXT
             keyboard.append(NEXT_PAGE_BTN)
-        self.state.result_sliced_view = page_offset
-        self.save_state()
+
         keyboard.append([BACK_BTN, MAIN_MENU_BTN])
         keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -183,10 +195,12 @@ class Manager:
         if last_page:
             text = THATS_ALL_FOLKS_TEXT
 
-        await self.forwarder.forward_estates_to_user(user_id=self.update.effective_user.id, links=items_result)
+        await self.forwarder.forward_estates_to_user(user_id=self.update.effective_user.id, message_links=items_result)
         await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
                                             text=text,
                                             reply_markup=reply_markup)
+        self.state.result_sliced_view = page_offset
+        self.save_state()
 
     def save_state(self):
         self.state.update_context(self.context)
@@ -205,3 +219,8 @@ class Manager:
         await save_user(user)
         await self.reset_state()
 
+    async def notify_admins_about_bad_link(self, message_link: str):
+        model = await get_model_by_link(self.model, message_link)
+        text = f"Something wrong with: {model.get_full_name()}"
+
+        await notify_admins(self.context.bot, text)

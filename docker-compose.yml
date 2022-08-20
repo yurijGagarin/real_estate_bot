@@ -11,6 +11,7 @@ services:
       FROM_CHAT_ID: '${FROM_CHAT_ID}'
       API_HASH: '${API_HASH}'
       API_ID: '${API_ID}'
+      SENTRY_DSN: '${SENTRY_DSN}'
     restart: always
     volumes:
       - ./data:/app/data

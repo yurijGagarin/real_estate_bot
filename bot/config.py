@@ -12,3 +12,4 @@ FROM_CHAT_ID = int(os.environ["FROM_CHAT_ID"])
 API_ID = os.environ["API_ID"]
 API_HASH = os.environ["API_HASH"]
 SESSION_NAME = "real_estate_rent_bot"
+SENTRY_DSN = os.environ["SENTRY_DSN"]

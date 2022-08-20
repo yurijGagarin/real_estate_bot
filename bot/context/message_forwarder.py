@@ -1,6 +1,12 @@
+import logging
 from typing import List
 
+import pyrogram.errors.exceptions.all
 from pyrogram import Client
+
+from bot.exceptions import MessageNotFound
+
+logger = logging.getLogger(__name__)
 
 
 class MessageForwarder:
@@ -11,19 +17,16 @@ class MessageForwarder:
         self.app = app
         self.from_chat_id = from_chat_id
 
-    def get_message_id_from_link(self, link):
+    @staticmethod
+    def get_message_id_from_link(link):
         return int(link.split('/')[-1].split('\n')[0].split('?')[0])
 
-    async def forward_messages(self, message_ids: List[int], chat_id: int):
-        for message_id in message_ids:
-
-            await self.forward_message(message_id=message_id, chat_id=chat_id)
-
-    async def forward_message(self, message_id: int, chat_id: int):
+    async def forward_message(self, message_link: str, chat_id: int):
+        message_id = MessageForwarder.get_message_id_from_link(message_link)
         messages = await self.app.get_messages(chat_id=self.from_chat_id, message_ids=[message_id])
 
         if len(messages) == 0:
-            return
+            raise MessageNotFound(message_link=message_link)
 
         message = messages[0]
         message_ids = [message.id]
@@ -37,9 +40,12 @@ class MessageForwarder:
             message_ids=list(set(message_ids)),
         )
 
-    async def forward_estates_to_user(self, user_id: int, links: List[str]):
-        message_ids = [self.get_message_id_from_link(link) for link in links]
-        await self.forward_messages(
-            message_ids=message_ids,
-            chat_id=user_id,
-        )
+    async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
+        logger.info('Forward messages %s to user %s', message_links, user_id)
+
+        for message_link in message_links:
+            try:
+                await self.forward_message(message_link=message_link, chat_id=user_id)
+            except pyrogram.errors.exceptions.MessageIdInvalid as e:
+                print(e)
+                raise MessageNotFound(message_link=message_link)

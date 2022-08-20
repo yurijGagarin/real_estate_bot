@@ -4,10 +4,10 @@ from pprint import pprint
 
 import click
 
+import bot.models
 from bot.api.google import GoogleApi
 from bot.data_manager import DataManager
-from bot.db import async_session
-import bot.models
+from bot.db import async_session, get_admin_users
 
 
 @click.group()
@@ -46,16 +46,24 @@ async def sync_data():
 
 
 @cli.command()
+@coro
+async def get_admins():
+    users = await get_admin_users()
+    for user in users:
+        print(user.id, user)
+
+
+@cli.command()
 @click.argument('user_id', type=click.INT)
 @coro
 async def user_to_admin(user_id):
-
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
         if user and not user.is_admin:
             user.is_admin = True
             session.add(user)
         await session.commit()
+
 
 if __name__ == "__main__":
     cli()

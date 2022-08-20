@@ -3,6 +3,7 @@ import re
 from typing import Type, List
 
 import aioschedule as schedule
+import sentry_sdk
 from pyrogram import Client
 from telegram import Update
 from telegram.ext import (
@@ -26,10 +27,15 @@ from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
     END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, \
     show_subscription_menu, CANCEL_SUBSCRIPTION, MAIN_MENU
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
 logger = logging.getLogger(__name__)
+sentry_sdk.init(
+    dsn=config.SENTRY_DSN,
+
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    # We recommend adjusting this value in production.
+    traces_sample_rate=1.0
+)
 
 
 async def sync_data(forwarder: MessageForwarder):
@@ -126,7 +132,6 @@ def main() -> None:
                  no_updates=True
                  )
     app.start()
-    app.resolve_peer(5298182327)
     forwarder = MessageForwarder(app=app, from_chat_id=config.FROM_CHAT_ID)
 
     FILTERS = {
@@ -206,7 +211,7 @@ def main() -> None:
 
     loop.create_task(start_schedules(forwarder))
     application.run_polling()
-    # app.stop()
+    app.stop()
 
 
 async def start_schedules(forwarder: MessageForwarder):

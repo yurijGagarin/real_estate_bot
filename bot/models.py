@@ -4,9 +4,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean, DateTime, Text, PickleType,
-)
-from sqlalchemy.ext.mutable import MutableList
+    Boolean, DateTime, Text, )
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -40,6 +38,9 @@ class Ad(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.datetime.utcnow)
 
+    def get_full_name(self):
+        return f"ID: {self.id} Link: {self.link}"
+
 
 class Apartments(Ad):
     __tablename__ = "apartments"
@@ -69,5 +70,3 @@ class Houses(Ad):
             self.living_area,
             self.link,
         )
-
-
