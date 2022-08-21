@@ -317,7 +317,7 @@ class PriceFilter(BaseFilter):
 
         price_from = self.values['price_from']
         price_to = self.values['price_to']
-
+        ten_percent_more = 1.1
         currencies = get_exchange_rates()
 
         filters = []
@@ -327,7 +327,7 @@ class PriceFilter(BaseFilter):
             if price_from:
                 conditions.append(price_from / v <= self.model.rent_price)
             if price_to:
-                conditions.append(self.model.rent_price <= price_to / v)
+                conditions.append(self.model.rent_price <= (price_to / v) * ten_percent_more)
 
             f = and_(*conditions)
 
