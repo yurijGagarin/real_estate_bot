@@ -131,9 +131,11 @@ class BaseFilter:
     async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
         """Helper function to build the next inline keyboard."""
         keyboard = await self.build_items_keyboard()
-
+        items = await self.get_items()
+        total_items = len(items)
+        selected_items = len(list(filter(None, self.values.values())))
         if self.has_select_all:
-            if self.select_all:
+            if self.select_all and total_items == selected_items:
                 keyboard.append([InlineKeyboardButton(self.unselect_all_text, callback_data='{"%s": 0}' % SELECT_ALL)])
             else:
                 keyboard.append([InlineKeyboardButton(self.select_all_text, callback_data='{"%s": 1}' % SELECT_ALL)])
@@ -165,10 +167,14 @@ class BaseFilter:
 
     async def build_text(self, is_final=False):
         items = await self.get_items()
-        values = 'не вибрано'
-        if len(list(filter(None, self.values.values()))):
+        total_items = len(items)
+        selected_items = len(list(filter(None, self.values.values())))
+        values = 'Не вибрано'
+        if total_items == selected_items:
+            values = f'Всі {self.name}'
+        elif selected_items:
             values = ', '.join([k for k in items if self.values.get(k)])
-        return f'{self.name}: ' + values
+        return f'<b>{self.name}</b>: ' + values + '\n'
 
     async def get_items(self):
         return []
@@ -243,8 +249,7 @@ class RoomsFilter(BaseFilter):
         '1': '1️⃣',
         '2': '2️⃣',
         '3': '3️⃣',
-        '3+': '➕3️⃣',
-
+        '3+': '3️⃣+',
 
     }
     has_select_all = True
@@ -255,6 +260,14 @@ class RoomsFilter(BaseFilter):
                  prev_filter: Optional['BaseFilter'] = None,
                  name: Optional[str] = None):
         super().__init__(model, state, prev_filter, name)
+
+    async def build_text(self, is_final=False):
+        items = await self.get_items()
+        selected_items = len(list(filter(None, self.values.values())))
+        values = 'Не вибрано'
+        if selected_items:
+            values = ', '.join([k for k in items if self.values.get(k)])
+        return f'<b>{self.name}</b>: ' + values + '\n'
 
     async def get_items(self):
         rooms_qty = await self.get_rooms_qty()
@@ -285,7 +298,7 @@ class RoomsFilter(BaseFilter):
             except ValueError:
                 pass
 
-        if self.values[f'➕3️⃣']:
+        if self.values[f'3️⃣+']:
             items += rooms_qty
 
         query = await self.get_query()
@@ -295,7 +308,7 @@ class RoomsFilter(BaseFilter):
 
 
 class PriceFilter(BaseFilter):
-    name = 'Ціна'
+    name = '<b>Ціна</b>'
     has_select_all = False
 
     async def build_text(self, is_final=False):
@@ -304,7 +317,7 @@ class PriceFilter(BaseFilter):
             return f'{self.name}: ' + 'Весь діапазон цін'
         elif not self.values['price_to']:
             return f'{self.name}: ' \
-                   f'Надішліть повідомлення з максимальною ціною в гривні ✍'
+                   f'<i>Надішліть повідомлення з максимальною ціною в гривні</i> ✍'
 
         else:
             return f'{self.name}: ' + to_text

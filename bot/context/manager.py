@@ -119,11 +119,12 @@ class Manager:
         if self.active_filter.allow_next():
             next_text = 'Пропустити ➡'
             if self.active_filter.has_values():
-                next_text = '➡️'
+                next_text = 'Далі ➡️'
             navigation_row.append(await self.NEXT_BTN(next_text))
         kbrd.append(navigation_row)
-
-        text = ['Обрані фільтри:']
+        text = ['Обрані фільтри:\n']
+        if self.state.is_subscription:
+            text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(await f.build_text())
@@ -139,7 +140,7 @@ class Manager:
         if not self.context.user_data.get('callback_query') or \
                 new_text != callback_query.message.text or \
                 keyboard.inline_keyboard != callback_query.message.reply_markup.inline_keyboard:
-            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard)
+            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard, parse_mode='HTML')
 
             if isinstance(edit_result, Message):
                 callback_query.message = edit_result
@@ -175,6 +176,7 @@ class Manager:
                 await delete_model_by_link(self.model, e.message_link)
 
     async def _show_result(self):
+        await get_user(self.update)
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q, self.model)
         all_items_result_len = len(all_items_result)
@@ -216,7 +218,7 @@ class Manager:
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized
-        text = ['Обрані фільтри:']
+        text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(await f.build_text(is_final=True))

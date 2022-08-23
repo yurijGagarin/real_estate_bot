@@ -24,8 +24,8 @@ MAIN_MENU = 'm'
 REFRESH_DB = 'refresh_db'
 SUBSCRIPTION_MODE = 'sub'
 MAIN_MENU_TEXT = '🏠️'
-LOAD_MORE_LINKS_TEXT = "Показати ⤵️"
-LOAD_MORE_LINKS_BTN_TEXT = "Схоже тут є ще варіанти для тебе"
+LOAD_MORE_LINKS_TEXT = "Показати ще ⤵️"
+LOAD_MORE_LINKS_BTN_TEXT = "Схоже тут є ще варіанти для тебе ❗️"
 MAIN_MENU_BTN_TEXT = "⬅️"
 WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Оберіть бажану послугу."
 CANCEL_SUBSCRIPTION = 'CANCEL_SUBSCRIPTION'
@@ -88,7 +88,7 @@ async def show_subscription_menu(update: Update):
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+    await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup, parse_mode='HTML')
 
 
 async def build_basic_keyboard(btns_pattern: Dict):

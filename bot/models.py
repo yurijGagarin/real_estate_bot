@@ -17,6 +17,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
     nickname = Column(String)
     last_viewed_at = Column(DateTime, default=datetime.datetime.utcnow)
+    last_active_at = Column(DateTime, default=datetime.datetime.utcnow)
     subscription = Column(Text, nullable=True)
     subscription_text = Column(Text, nullable=True)
 

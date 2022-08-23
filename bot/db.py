@@ -95,7 +95,12 @@ async def get_user(update: Update):
             user = bot.models.User(
                 id=update.effective_user.id,
                 nickname=update.effective_user.username,
+                last_active_at=datetime.datetime.utcnow()
             )
+            session.add(user)
+            await session.commit()
+        else:
+            user.last_active_at = datetime.datetime.utcnow()
             session.add(user)
             await session.commit()
     return user
