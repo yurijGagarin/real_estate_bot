@@ -117,10 +117,11 @@ class Manager:
             navigation_row.append(BACK_BTN)
 
         if self.active_filter.allow_next():
-            next_text = 'Пропустити'
+            next_text = 'Пропустити ➡'
             if self.active_filter.has_values():
-                next_text = 'Далі'
-            kbrd.append([InlineKeyboardButton(next_text, callback_data='{"n":1}')])
+                next_text = '➡️'
+            navigation_row.append(await self.NEXT_BTN(next_text))
+        kbrd.append(navigation_row)
 
         text = ['Обрані фільтри:']
         for i in range(self.state.filter_index + 1):

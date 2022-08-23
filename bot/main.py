@@ -138,6 +138,7 @@ def main() -> None:
                 DistrictFilter,
                 RoomsFilter,
                 PriceFilter,
+                ResidentialComplexFilter,
             ],
             "stage": APARTMENTS,
         },

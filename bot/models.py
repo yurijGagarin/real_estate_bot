@@ -47,6 +47,8 @@ class Apartments(Ad):
 
     street = Column(String, nullable=False)
     residential_complex = Column(String, nullable=False)
+    kids = Column(String, nullable=True)
+    pets = Column(String, nullable=True)
 
     def __repr__(self):
         return "<Apartments(id='%s' rent_price='%s', link='%s')>" % (
