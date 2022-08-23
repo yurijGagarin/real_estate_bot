@@ -1,11 +1,9 @@
-from telegram import Bot
-
 import bot
 from bot.api.google import GoogleApi
 from bot.context.message_forwarder import MessageForwarder
-from bot.db import remove_data_from_db, sync_objects_to_db, get_users_with_subscription, get_user_subscription
+from bot.db import sync_objects_to_db, get_users_with_subscription, get_user_subscription
 from bot.log import logging
-from bot.models import Apartments, Houses, User
+from bot.models import Apartments
 
 CAT_APARTMENTS = 'Apartments'
 CAT_HOUSES = 'Houses'
@@ -58,7 +56,7 @@ VALIDATORS = {
 }
 
 MAPPING_APARTS = {
-    '': PROP_ID,
+    '№': PROP_ID,
     'Район': PROP_DISTRICT,
     'Вулиця': PROP_STREET,
     'ЖК': PROP_RC,

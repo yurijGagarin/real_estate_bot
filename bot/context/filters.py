@@ -141,7 +141,6 @@ class BaseFilter:
 
     #
     async def process_action(self, payload: Payload, update: Update):
-        print(payload)
         items = await self.get_items()
         if SELECT_ALL in payload.callback:
             self.select_all = payload.callback[SELECT_ALL]
@@ -274,25 +273,21 @@ class PriceFilter(BaseFilter):
     has_select_all = False
 
     async def build_text(self, is_final=False):
-        from_text = 'від ' + str(self.values['price_from']) + 'грн'
-        to_text = 'до ' + str(self.values['price_to']) + 'грн'
+        to_text = 'до ' + str(self.values['price_to']) + ' грн'
         if not self.has_values() and is_final:
             return f'{self.name}: ' + 'Весь діапазон цін'
-        elif not self.values['price_from']:
-            return 'Введіть min ціну у гривні від якої розглядаєте 👇'
         elif not self.values['price_to']:
-            return f'{self.name}: ' + from_text + ' \nВведіть max ціну у гривні до якої розглядаєте 👇'
+            return f'{self.name}: ' \
+                   f'Надішліть повідомлення з максимальною ціною в гривні ✍'
 
         else:
-            return f'{self.name}: ' + from_text + ' ' + to_text
+            return f'{self.name}: ' + to_text
 
     async def process_action(self, payload: Payload, update: Update):
         try:
             number = int(payload.message.strip())
             if number:
-                if not self.values['price_from']:
-                    self.values['price_from'] = number
-                elif not self.values['price_to']:
+                if not self.values['price_to']:
                     self.values['price_to'] = number
         except ValueError:
             pass
@@ -303,7 +298,7 @@ class PriceFilter(BaseFilter):
         return dict(self.state)
 
     def has_values(self):
-        return self.values['price_from'] or self.values['price_to']
+        return self.values['price_to']
 
     def allow_next(self):
         return True
@@ -315,9 +310,8 @@ class PriceFilter(BaseFilter):
         if not self.has_values():
             return q.filter()
 
-        price_from = self.values['price_from']
-        price_to = self.values['price_to']
-        ten_percent_more = 1.1
+        price_from = self.values['price_to'] * 0.5
+        price_to = self.values['price_to'] * 1.1
         currencies = get_exchange_rates()
 
         filters = []
@@ -327,7 +321,7 @@ class PriceFilter(BaseFilter):
             if price_from:
                 conditions.append(price_from / v <= self.model.rent_price)
             if price_to:
-                conditions.append(self.model.rent_price <= (price_to / v) * ten_percent_more)
+                conditions.append(self.model.rent_price <= (price_to / v))
 
             f = and_(*conditions)
 

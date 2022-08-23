@@ -112,8 +112,9 @@ class Manager:
 
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
+        navigation_row = []
         if self.state.filter_index >= 0:
-            kbrd.append([BACK_BTN])
+            navigation_row.append(BACK_BTN)
 
         if self.active_filter.allow_next():
             next_text = 'Пропустити'
@@ -142,6 +143,10 @@ class Manager:
             if isinstance(edit_result, Message):
                 callback_query.message = edit_result
             self.context.user_data['callback_query'] = callback_query
+
+    async def NEXT_BTN(self, next_text):
+        return InlineKeyboardButton(next_text, callback_data='{"n":1}')
+
 
     def get_payload(self):
         message = ""

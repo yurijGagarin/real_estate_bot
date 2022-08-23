@@ -16,6 +16,7 @@ from telegram.ext import (
 
 from bot import config
 from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter
+
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.state import State
@@ -30,10 +31,6 @@ from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
 logger = logging.getLogger(__name__)
 sentry_sdk.init(
     dsn=config.SENTRY_DSN,
-
-    # Set traces_sample_rate to 1.0 to capture 100%
-    # of transactions for performance monitoring.
-    # We recommend adjusting this value in production.
     traces_sample_rate=1.0
 )
 
@@ -139,7 +136,6 @@ def main() -> None:
             "model": Apartments,
             "filters": [
                 DistrictFilter,
-                ResidentialComplexFilter,
                 RoomsFilter,
                 PriceFilter,
             ],
