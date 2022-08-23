@@ -25,12 +25,42 @@ PROP_PLACING = 'placing'
 PROP_LIVING_AREA = 'living_area'
 PROP_TERRITORY_AREA = 'territory_area'
 PROP_IS_CLOSED = 'is_closed'
+PROP_KIDS = 'kids'
+PROP_PETS = 'pets'
+
+KIDS_ALLOWED_PROP = 'Діти'
+KIDS_ABOVE_SIX_YO_PROP = 'Діти (від 6 років)'
+KIDS_ALLOWED = 'Д'
+KIDS_ABOVE_SIX_YO = 'Д6'
+
+PETS_ALLOWED = "Т"
+DOGS_ALLOWED = "П"
+CATS_ALLOWED = "К"
+PETS_ALLOWED_PROP = "Домашні тварини"
+DOGS_ALLOWED_PROP = "Песики"
+CATS_ALLOWED_PROP = "Котики"
 
 
 def validate_link(v):
     if v and v.startswith('https://t.me'):
         return v
     raise ValueError('Invalid link')
+
+
+ADDITIONAL_FILTERS_MAP = {
+    KIDS_ALLOWED: KIDS_ALLOWED_PROP,
+    KIDS_ABOVE_SIX_YO: KIDS_ABOVE_SIX_YO_PROP,
+
+    DOGS_ALLOWED: DOGS_ALLOWED_PROP,
+    CATS_ALLOWED: CATS_ALLOWED_PROP,
+    PETS_ALLOWED: PETS_ALLOWED_PROP,
+
+}
+
+
+def validate_additional_filters(v):
+    v = ADDITIONAL_FILTERS_MAP.get(v)
+    return v
 
 
 def validated_is_closed(v):
@@ -53,6 +83,8 @@ VALIDATORS = {
     PROP_CURRENCY: validate_currency,
     PROP_IS_CLOSED: validated_is_closed,
     PROP_LINK: validate_link,
+    PROP_KIDS: validate_additional_filters,
+    PROP_PETS: validate_additional_filters,
 }
 
 MAPPING_APARTS = {
@@ -65,6 +97,8 @@ MAPPING_APARTS = {
     'Вал': PROP_CURRENCY,
     'Опис': PROP_LINK,
     'Актуальність': PROP_IS_CLOSED,
+    'Д': PROP_KIDS,
+    'Т': PROP_PETS
 }
 MAPPING_HOUSES = {
     '№': PROP_ID,

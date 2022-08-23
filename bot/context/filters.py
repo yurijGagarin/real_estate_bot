@@ -33,8 +33,8 @@ ITEMS_PER_PAGE = 20
 class BaseFilter:
     __query: Optional[Select]
     name: str
-    select_all_text = 'Обрати всі'
-    unselect_all_text = 'Зняти виділення з усіх'
+    select_all_text = 'Обрати всі ✅'
+    unselect_all_text = 'Зняти виділення з усіх ❌'
     has_select_all: bool
     desired_amount_of_rows: int = 2
 
@@ -121,9 +121,9 @@ class BaseFilter:
             buttons = []
             if self.page_idx > 0:
                 buttons.append(
-                    InlineKeyboardButton(f'<-', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)))
+                    InlineKeyboardButton(f'◀️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)))
             if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
-                buttons.append(InlineKeyboardButton(f'->', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
+                buttons.append(InlineKeyboardButton(f'▶️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
             if len(buttons) > 0:
                 keyboard.append(buttons)
         return keyboard
@@ -209,6 +209,23 @@ class DistrictFilter(ColumnFilter):
         return self.model.district
 
 
+# class AdditionalFilter(BaseFilter):
+#     name = 'Додаткові фільтри'
+#     has_select_all = False
+#
+#     async def get_items(self):
+#         items = [item for item in ADDITIONAL_FILTERS_MAP.values()]
+#         return items
+
+# async def process_action(self, payload: Payload, update: Update):
+# filter_name = payload.callback[]
+# if filter_name:
+#     if not self.values['price_from']:
+#         self.values['price_from'] = number
+#     elif not self.values['price_to']:
+#         self.values['price_to'] = number
+
+
 class ResidentialComplexFilter(ColumnFilter):
     name = 'ЖК'
 
@@ -221,8 +238,16 @@ class ResidentialComplexFilter(ColumnFilter):
 class RoomsFilter(BaseFilter):
     name = 'Кількість кімнат'
 
-    max_rooms = 3
-    has_select_all = False
+    MAX_ROOMS = 3
+    ROOM_BUTTONS_MAPPING = {
+        '1': '1️⃣',
+        '2': '2️⃣',
+        '3': '3️⃣',
+        '3+': '➕3️⃣',
+
+
+    }
+    has_select_all = True
 
     def __init__(self,
                  model: Type[Ad],
@@ -235,14 +260,15 @@ class RoomsFilter(BaseFilter):
         rooms_qty = await self.get_rooms_qty()
 
         items = []
-        for r_qty in range(1, self.max_rooms):
+        for r_qty in range(1, self.MAX_ROOMS):
             if r_qty in rooms_qty:
                 items.append(str(r_qty))
                 rooms_qty.remove(r_qty)
         if len(rooms_qty):
-            items.append(f'{self.max_rooms}+')
+            items.append(f'{self.MAX_ROOMS}+')
 
-        return items
+        items = map(lambda x: self.ROOM_BUTTONS_MAPPING.get(x) if x in self.ROOM_BUTTONS_MAPPING else x, items)
+        return list(items)
 
     async def get_rooms_qty(self) -> List[int]:
         return await get_unique_el_from_db(await self.get_query(), self.model.rooms)
@@ -251,7 +277,7 @@ class RoomsFilter(BaseFilter):
     async def build_query(self):
         rooms_qty = await self.get_rooms_qty()
         items = []
-        for r_qty in range(1, self.max_rooms):
+        for r_qty in range(1, self.MAX_ROOMS):
             if self.values[str(r_qty)]:
                 items.append(r_qty)
             try:
@@ -259,7 +285,7 @@ class RoomsFilter(BaseFilter):
             except ValueError:
                 pass
 
-        if self.values[f'{self.max_rooms}+']:
+        if self.values[f'➕3️⃣']:
             items += rooms_qty
 
         query = await self.get_query()

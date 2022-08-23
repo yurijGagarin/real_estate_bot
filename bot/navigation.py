@@ -23,10 +23,10 @@ ACTION_BACK = 'b'
 MAIN_MENU = 'm'
 REFRESH_DB = 'refresh_db'
 SUBSCRIPTION_MODE = 'sub'
-MAIN_MENU_TEXT = 'Головне Меню'
-LOAD_MORE_LINKS_TEXT = "Показати"
-LOAD_MORE_LINKS_BTN_TEXT = "Тут є ще вараінти для тебе"
-MAIN_MENU_BTN_TEXT = "До головного меню"
+MAIN_MENU_TEXT = '🏠️'
+LOAD_MORE_LINKS_TEXT = "Показати ⤵️"
+LOAD_MORE_LINKS_BTN_TEXT = "Схоже тут є ще варіанти для тебе"
+MAIN_MENU_BTN_TEXT = "⬅️"
 WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Оберіть бажану послугу."
 CANCEL_SUBSCRIPTION = 'CANCEL_SUBSCRIPTION'
 SUBSCRIPTION_TEXT = "Це меню для налаштування отримання нових повідомлень, " \
@@ -36,27 +36,27 @@ SHOW_NEXT_PAGE = 'else'
 SHOW_ITEMS_PER_PAGE = 3
 NEXT_PAGE_BTN = [InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
                                       callback_data='{"%s": 1}' % SHOW_NEXT_PAGE)]
-MAIN_MENU_BTN = InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
+MAIN_MENU_BTN = InlineKeyboardButton(MAIN_MENU_TEXT,
                                      callback_data='{"%s": 1}' % MAIN_MENU)
 MAIN_MENU_BTN_STATE = InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
                                      callback_data=MAIN_MENU)
 EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пошуку нічого не знайшлось.' \
                     '\nСпробуйте змінити параметри пошуку,' \
                     '\nабо підпишіться на розсилку нових оголошень.'
-BACK_BTN = InlineKeyboardButton('Назад', callback_data='{"b":1}')
-SUBSCRIPTION_BTN = InlineKeyboardButton('Підписатися на оновлення', callback_data='{"sub":1}')
+BACK_BTN = InlineKeyboardButton('⬅️', callback_data='{"b":1}')
+SUBSCRIPTION_BTN = InlineKeyboardButton('Підписатися на оновлення 📩', callback_data='{"sub":1}')
 THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
                        'Підпишись на розсилку щоб першим знати про нові оголошення'
 # Main Menu Buttons
 
 START_BUTTONS = {
-    'Оренда Квартир': APARTMENTS_STATE,
-    'Оренда Будинків': HOUSES_STATE,
-    'Повідомлення про нові оголошення': SUBSCRIPTION_STATE,
+    'Оренда Квартир 🏢': APARTMENTS_STATE,
+    'Оренда Будинків 🏡': HOUSES_STATE,
+    'Повідомлення про нові оголошення 📩': SUBSCRIPTION_STATE,
 }
 SUBSCRIPTION_BUTTONS = {
-    'Квартири': APARTMENTS_STATE,
-    'Будинки': HOUSES_STATE,
+    'Квартири 🏢': APARTMENTS_STATE,
+    'Будинки 🏡': HOUSES_STATE,
 }
 
 
@@ -81,7 +81,7 @@ async def show_subscription_menu(update: Update):
     keyboard = await build_basic_keyboard(SUBSCRIPTION_BUTTONS)
     text = SUBSCRIPTION_TEXT
     if user.subscription:
-        keyboard.insert(0, [InlineKeyboardButton("Відмінити підписку",
+        keyboard.insert(0, [InlineKeyboardButton("Відмінити підписку ❌",
                                               callback_data=CANCEL_SUBSCRIPTION)])
         text = user.subscription_text
     keyboard.append([MAIN_MENU_BTN_STATE])
