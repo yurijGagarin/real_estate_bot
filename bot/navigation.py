@@ -58,6 +58,10 @@ SUBSCRIPTION_BUTTONS = {
     'Квартири 🏢': APARTMENTS_STATE,
     'Будинки 🏡': HOUSES_STATE,
 }
+NEXT_ADDITIONAL_FILTER = 'Далі'
+
+def NEXT_BTN(text, callback):
+    return InlineKeyboardButton(text=text, callback_data=callback)
 
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
