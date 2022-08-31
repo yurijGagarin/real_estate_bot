@@ -9,9 +9,13 @@ from telegram import InlineKeyboardButton, Update
 
 from bot.api.monobank_currency import get_exchange_rates
 from bot.context.payload import Payload
+from bot.data_manager import KIDS_FILTER_TEXT, KIDS_ABOVE_SIX_YO_PROP, DOGS_ALLOWED_PROP, \
+    CATS_ALLOWED_PROP, ALL_KIDS_ALLOWED_PROP, PETS_FILTER_TEXT, OTHER_ANIMALS_PROP, \
+    ALL_PETS_ALLOWED_PROP
 from bot.db import get_unique_el_from_db
 from bot.log import logging
 from bot.models import Ad, Apartments, Houses
+from bot.navigation import NEXT_ADDITIONAL_FILTER, NEXT_BTN, BACK_BTN
 
 
 def function_logger(func):
@@ -92,6 +96,15 @@ class BaseFilter:
                 self.__query = select(self.model)
         return self.__query
 
+    def build_next_btn(self):
+        next_text = 'Пропустити ➡'
+        if self.has_values():
+            next_text = 'Далі ➡️'
+        return NEXT_BTN(next_text, '{"n":1}')
+
+    def build_back_btn(self):
+        return BACK_BTN
+
     async def build_items_keyboard(self):
         all_items = await self.get_items()
         all_items_len = len(all_items)
@@ -160,12 +173,9 @@ class BaseFilter:
         return len(list(filter(None, self.values.values())))
 
     def allow_next(self):
-        # this method could be overridden at child classes if it needs
-
-        # return len(list(filter(None, self.values.values())))
         return True
 
-    async def build_text(self, is_final=False):
+    async def build_text(self, is_final=False, is_active=False):
         items = await self.get_items()
         total_items = len(items)
         selected_items = len(list(filter(None, self.values.values())))
@@ -178,6 +188,9 @@ class BaseFilter:
 
     async def get_items(self):
         return []
+
+    def allow_back(self):
+        return True
 
 
 class ColumnFilter(BaseFilter):
@@ -215,23 +228,6 @@ class DistrictFilter(ColumnFilter):
         return self.model.district
 
 
-# class AdditionalFilter(BaseFilter):
-#     name = 'Додаткові фільтри'
-#     has_select_all = False
-#
-#     async def get_items(self):
-#         items = [item for item in ADDITIONAL_FILTERS_MAP.values()]
-#         return items
-
-# async def process_action(self, payload: Payload, update: Update):
-# filter_name = payload.callback[]
-# if filter_name:
-#     if not self.values['price_from']:
-#         self.values['price_from'] = number
-#     elif not self.values['price_to']:
-#         self.values['price_to'] = number
-
-
 class ResidentialComplexFilter(ColumnFilter):
     name = 'ЖК'
 
@@ -261,7 +257,7 @@ class RoomsFilter(BaseFilter):
                  name: Optional[str] = None):
         super().__init__(model, state, prev_filter, name)
 
-    async def build_text(self, is_final=False):
+    async def build_text(self, is_final=False, is_active=False):
         items = await self.get_items()
         selected_items = len(list(filter(None, self.values.values())))
         values = 'Не вибрано'
@@ -307,20 +303,164 @@ class RoomsFilter(BaseFilter):
         return query.filter()
 
 
-class PriceFilter(BaseFilter):
-    name = '<b>Ціна</b>'
+class AdditionalFilter(BaseFilter):
+    name = 'Додаткові фільтри'
     has_select_all = False
 
-    async def build_text(self, is_final=False):
+    BUTTONS_MAPPING = {
+        KIDS_FILTER_TEXT: {
+            'question': 'Скільки років Вашій молодшій дитині?',
+            'items': [ALL_KIDS_ALLOWED_PROP, KIDS_ABOVE_SIX_YO_PROP],
+        },
+        PETS_FILTER_TEXT: {
+            'question': 'Які в Вас домашні тваринки?',
+            'items': [DOGS_ALLOWED_PROP, CATS_ALLOWED_PROP, OTHER_ANIMALS_PROP],
+        },
+    }
+
+    def allow_next(self):
+        return (self.is_first_page() and not self.has_values()) or \
+               (self.is_last_page() and self.has_selected_subitems())
+
+    def is_first_page(self):
+        return self.page_idx == 0
+
+    def is_last_page(self):
+        return self.page_idx == len([el for k, el in self.values.items() if el and k in self.BUTTONS_MAPPING.keys()])
+
+    def has_values(self):
+        return super().has_values() > 0
+
+    async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        keyboard = []
+
+        if self.is_first_page():
+            for k in self.BUTTONS_MAPPING.keys():
+                title = k
+                if self.values.get(k):
+                    title = f'{title} ✅'
+                keyboard.append([InlineKeyboardButton(title, callback_data='{"%s": 1}' % k)])
+        else:
+            items = self.get_active_subitems()
+            for k in items:
+                title = k
+                if self.values.get(k):
+                    title = f'{title} ✅'
+                keyboard.append([InlineKeyboardButton(title, callback_data='{"%s": 1}' % k)])
+        return keyboard
+
+    async def build_text(self, is_final=False, is_active=False):
+
+        active_item = self.get_active_item()
+        if is_active:
+            if active_item is not None:
+                question = self.BUTTONS_MAPPING[active_item]['question']
+                return question
+        if not self.has_values():
+            return None
+        text = [f'<b>{self.name}</b>:']
+        for key in self.BUTTONS_MAPPING.keys():
+            if self.values.get(key):
+                selected_subitems = [k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING[key]['items']]
+                if not len(selected_subitems):
+                    line = f'--> {key}'
+                else:
+                    if key == KIDS_FILTER_TEXT:
+                        line = f'--> {key} віком: ' + ', '.join(selected_subitems).lower()
+                    else:
+                        line = f'--> {key}: ' + ', '.join(selected_subitems).lower()
+                text.append(line)
+        return '\n'.join(text)
+
+
+    def build_next_btn(self):
+        if not self.allow_next() and self.has_selected_subitems():
+            return NEXT_BTN(NEXT_ADDITIONAL_FILTER, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+        if not self.has_selected_subitems():
+            return None
+
+        return super().build_next_btn()
+
+    def build_back_btn(self):
+        if self.page_idx > 0:
+            return InlineKeyboardButton(f'◀️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
+        return super().build_back_btn()
+
+    def get_active_subitems(self):
+        active_item = self.get_active_item()
+        if active_item is None:
+            return []
+        return self.BUTTONS_MAPPING[active_item]['items']
+
+    def get_active_item(self):
+        if self.is_first_page():
+            return None
+        active_items = [k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING.keys()]
+        active_item = active_items[self.page_idx - 1]
+        return active_item
+
+    #
+    @function_logger
+    async def build_query(self):
+        pets_filter = []
+        kids_filter = []
+        for k, v in self.values.items():
+            if v and k in self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]['items']:
+                kids_filter.append(k)
+            if v and k in self.BUTTONS_MAPPING[PETS_FILTER_TEXT]['items']:
+                pets_filter.append(k)
+        filters = []
+        conditions = []
+        # TODO: REWRITE
+        all_kids_filters_selected = len(kids_filter) == len(self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]['items'])
+        if KIDS_ABOVE_SIX_YO_PROP in kids_filter and not all_kids_filters_selected:
+            kids_filter.append(ALL_KIDS_ALLOWED_PROP)
+        conditions.append(self.model.kids.in_(kids_filter))
+        if OTHER_ANIMALS_PROP in pets_filter:
+            pets_filter.append(ALL_PETS_ALLOWED_PROP)
+            pets_filter.remove(OTHER_ANIMALS_PROP)
+        conditions.append(self.model.pets.in_(pets_filter))
+        f = and_(*conditions)
+        filters.append(f)
+        q = await self.get_query()
+        if not self.has_values():
+            return q.filter()
+        return q.filter(or_(*filters))
+
+    async def process_action(self, payload: Payload, update: Update):
+        items = self.get_active_subitems()
+        for k in self.BUTTONS_MAPPING.keys():
+            if k in payload.callback:
+                self.values[k] = not self.values.get(k)
+        for k in items:
+            if k in payload.callback:
+                self.values[k] = not self.values.get(k)
+        if PAGE_IDX in payload.callback:
+            self.page_idx = payload.callback[PAGE_IDX]
+
+        return dict(self.state)
+
+    def has_selected_subitems(self):
+        if self.page_idx == 0:
+            return True
+        selected_values = [el for el in self.get_active_subitems() if self.values[el]]
+        return len(selected_values) > 0
+
+
+class PriceFilter(BaseFilter):
+    name = 'Ціна'
+    has_select_all = False
+
+    async def build_text(self, is_final=False, is_active=False):
         to_text = 'до ' + str(self.values['price_to']) + ' грн'
         if not self.has_values() and is_final:
-            return f'{self.name}: ' + 'Весь діапазон цін'
+            return f'<b>{self.name}</b>: ' + 'Весь діапазон цін'
         elif not self.values['price_to']:
-            return f'{self.name}: ' \
+            return f'<b>{self.name}</b>: ' \
                    f'<i>Надішліть повідомлення з максимальною ціною в гривні</i> ✍'
 
         else:
-            return f'{self.name}: ' + to_text
+            return f'<b>{self.name}</b>: ' + to_text
 
     async def process_action(self, payload: Payload, update: Update):
         try:

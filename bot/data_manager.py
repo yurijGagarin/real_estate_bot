@@ -28,17 +28,20 @@ PROP_IS_CLOSED = 'is_closed'
 PROP_KIDS = 'kids'
 PROP_PETS = 'pets'
 
-KIDS_ALLOWED_PROP = 'Діти'
-KIDS_ABOVE_SIX_YO_PROP = 'Діти (від 6 років)'
+KIDS_FILTER_TEXT = 'В мене є діти'
+PETS_FILTER_TEXT = 'В мене є тварини'
+ALL_KIDS_ALLOWED_PROP = 'До 6 років'
+KIDS_ABOVE_SIX_YO_PROP = 'Від 6 років'
 KIDS_ALLOWED = 'Д'
 KIDS_ABOVE_SIX_YO = 'Д6'
 
 PETS_ALLOWED = "Т"
 DOGS_ALLOWED = "П"
 CATS_ALLOWED = "К"
-PETS_ALLOWED_PROP = "Домашні тварини"
-DOGS_ALLOWED_PROP = "Песики"
-CATS_ALLOWED_PROP = "Котики"
+ALL_PETS_ALLOWED_PROP = "Всі домашні тварини"
+DOGS_ALLOWED_PROP = "Песик"
+CATS_ALLOWED_PROP = "Котик"
+OTHER_ANIMALS_PROP = "Інші"
 
 
 def validate_link(v):
@@ -48,12 +51,12 @@ def validate_link(v):
 
 
 ADDITIONAL_FILTERS_MAP = {
-    KIDS_ALLOWED: KIDS_ALLOWED_PROP,
+    KIDS_ALLOWED: ALL_KIDS_ALLOWED_PROP,
     KIDS_ABOVE_SIX_YO: KIDS_ABOVE_SIX_YO_PROP,
 
     DOGS_ALLOWED: DOGS_ALLOWED_PROP,
     CATS_ALLOWED: CATS_ALLOWED_PROP,
-    PETS_ALLOWED: PETS_ALLOWED_PROP,
+    PETS_ALLOWED: ALL_PETS_ALLOWED_PROP,
 
 }
 

@@ -15,7 +15,8 @@ from telegram.ext import (
 )
 
 from bot import config
-from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter
+from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter, \
+    AdditionalFilter
 
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
@@ -135,6 +136,7 @@ def main() -> None:
         APARTMENTS: {
             "model": Apartments,
             "filters": [
+                AdditionalFilter,
                 DistrictFilter,
                 ResidentialComplexFilter,
                 RoomsFilter,

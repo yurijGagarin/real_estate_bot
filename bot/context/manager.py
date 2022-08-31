@@ -5,7 +5,7 @@ from typing import Type, List
 
 from sqlalchemy.ext.serializer import dumps
 from sqlalchemy.sql import Select
-from telegram import InlineKeyboardMarkup, InlineKeyboardButton, Update, Message
+from telegram import InlineKeyboardMarkup, Update, Message
 from telegram.ext import ContextTypes
 
 from bot.context.filters import BaseFilter
@@ -113,21 +113,21 @@ class Manager:
     async def edit_message(self):
         kbrd = await self.active_filter.build_keyboard()
         navigation_row = []
-        if self.state.filter_index >= 0:
-            navigation_row.append(BACK_BTN)
-
-        if self.active_filter.allow_next():
-            next_text = 'Пропустити ➡'
-            if self.active_filter.has_values():
-                next_text = 'Далі ➡️'
-            navigation_row.append(await self.NEXT_BTN(next_text))
+        back_btn = self.active_filter.build_back_btn()
+        next_btn = self.active_filter.build_next_btn()
+        if back_btn is not None:
+            if self.state.filter_index >= 0:
+                navigation_row.append(back_btn)
+        if next_btn is not None:
+            navigation_row.append(next_btn)
         kbrd.append(navigation_row)
         text = ['Обрані фільтри:\n']
         if self.state.is_subscription:
             text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
-            text.append(await f.build_text())
+            is_active = i == self.state.filter_index
+            text.append(await f.build_text(is_active=is_active))
         text = list(filter(None, text))
         keyboard = InlineKeyboardMarkup(kbrd)
         callback_query = self.update.callback_query
@@ -140,15 +140,12 @@ class Manager:
         if not self.context.user_data.get('callback_query') or \
                 new_text != callback_query.message.text or \
                 keyboard.inline_keyboard != callback_query.message.reply_markup.inline_keyboard:
-            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard, parse_mode='HTML')
+            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard,
+                                                                 parse_mode='HTML')
 
             if isinstance(edit_result, Message):
                 callback_query.message = edit_result
             self.context.user_data['callback_query'] = callback_query
-
-    async def NEXT_BTN(self, next_text):
-        return InlineKeyboardButton(next_text, callback_data='{"n":1}')
-
 
     def get_payload(self):
         message = ""
@@ -221,7 +218,7 @@ class Manager:
         text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
-            text.append(await f.build_text(is_final=True))
+            text.append(await f.build_text(is_final=True, is_active=False))
         user.subscription_text = '\n'.join(text)
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
