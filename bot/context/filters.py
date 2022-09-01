@@ -370,6 +370,7 @@ class AdditionalFilter(BaseFilter):
                     else:
                         line = f'--> {key}: ' + ', '.join(selected_subitems).lower()
                 text.append(line)
+        text.append(' ')
         return '\n'.join(text)
 
 
