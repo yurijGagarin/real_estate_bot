@@ -156,3 +156,10 @@ async def get_regular_users():
 
     return [u[0] for u in users]
 
+async def get_recent_users(timedelta):
+    async with async_session() as session:
+        result = await session.execute(select(bot.models.User).where(bot.models.User.last_active_at >= timedelta))
+        users = result.fetchall()
+
+    return [u[0] for u in users]
+
