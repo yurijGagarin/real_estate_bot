@@ -11,13 +11,19 @@ START_ROUTES = "START_STAGE"
 APARTMENTS = "APARTMENTS_STAGE"
 HOUSES = "HOUSES_STAGE"
 SUBSCRIPTION = "SUBSCRIPTION_STAGE"
-
+ADMIN_MENU = "ADMIN_STAGE"
 END_ROUTES = "END_STAGE"
 # Callback data
 APARTMENTS_STATE = 'APARTMENTS_STATE'
 HOUSES_STATE = 'HOUSES_STATE'
 SUBSCRIPTION_STATE = 'SUBSCRIPTION_STATE'
+TOTAL_USERS = 'TOTAL_USERS'
+RECENT_HOUR_USERS = 'RECENT_HOUR_USERS'
+TOTAL_SUBSCRIBED_USERS = 'TOTAL_SUBSCRIBED_USERS'
+
 # Other constants
+
+ADMIN_MENU_CALLBACK = 'admin_menu'
 ACTION_NEXT = 'n'
 ACTION_BACK = 'b'
 MAIN_MENU = 'm'
@@ -39,7 +45,8 @@ NEXT_PAGE_BTN = [InlineKeyboardButton(LOAD_MORE_LINKS_TEXT,
 MAIN_MENU_BTN = InlineKeyboardButton(MAIN_MENU_TEXT,
                                      callback_data='{"%s": 1}' % MAIN_MENU)
 MAIN_MENU_BTN_STATE = InlineKeyboardButton(MAIN_MENU_BTN_TEXT,
-                                     callback_data=MAIN_MENU)
+                                           callback_data=MAIN_MENU)
+
 EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пошуку нічого не знайшлось.' \
                     '\nСпробуйте змінити параметри пошуку,' \
                     '\nабо підпишіться на розсилку нових оголошень.'
@@ -58,7 +65,15 @@ SUBSCRIPTION_BUTTONS = {
     'Квартири 🏢': APARTMENTS_STATE,
     'Будинки 🏡': HOUSES_STATE,
 }
+
+ADMIN_BUTTONS = {
+    'Всього користувачів': TOTAL_USERS,
+    'За минулу годину': RECENT_HOUR_USERS,
+    'Всього з підпискою': TOTAL_SUBSCRIBED_USERS,
+    'Оновити базу': REFRESH_DB
+}
 NEXT_ADDITIONAL_FILTER = 'Далі'
+
 
 def NEXT_BTN(text, callback):
     return InlineKeyboardButton(text=text, callback_data=callback)
@@ -70,8 +85,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     state.update_context(context)
     keyboard = await build_basic_keyboard(START_BUTTONS)
     if user.is_admin:
-        keyboard.append([InlineKeyboardButton("Оновити Базу",
-                                              callback_data=REFRESH_DB)])
+        keyboard.append([InlineKeyboardButton('Меню Адміна', callback_data=ADMIN_MENU_CALLBACK)])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.message:
@@ -86,16 +100,28 @@ async def show_subscription_menu(update: Update):
     text = SUBSCRIPTION_TEXT
     if user.subscription:
         keyboard.insert(0, [InlineKeyboardButton("Відмінити підписку ❌",
-                                              callback_data=CANCEL_SUBSCRIPTION)])
+                                                 callback_data=CANCEL_SUBSCRIPTION)])
         text = user.subscription_text
     keyboard.append([MAIN_MENU_BTN_STATE])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup, parse_mode='HTML')
+
+
+async def show_admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE, text_outer: str = None):
+    user = await get_user(update)
+    keyboard = await build_basic_keyboard(ADMIN_BUTTONS, items_in_row=1)
+    keyboard.append([MAIN_MENU_BTN_STATE])
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    base_text = f'Вітаємо {user.nickname}, що адмінимо сьогодні?'
+    text = base_text
+    if text_outer is not None:
+        text = text_outer
 
     await update.callback_query.edit_message_text(text=text, reply_markup=reply_markup, parse_mode='HTML')
 
 
-async def build_basic_keyboard(btns_pattern: Dict):
+async def build_basic_keyboard(btns_pattern: Dict, items_in_row: int = 2):
     keyboard = []
     row = []
     for k, v in btns_pattern.items():

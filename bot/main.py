@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import re
 from typing import Type, List
 
@@ -17,17 +18,17 @@ from telegram.ext import (
 from bot import config
 from bot.context.filters import RoomsFilter, DistrictFilter, ResidentialComplexFilter, PriceFilter, BaseFilter, \
     AdditionalFilter
-
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.state import State
 from bot.data_manager import DataManager
-from bot.db import get_user, save_user
+from bot.db import get_user, save_user, get_regular_users, get_recent_users, get_users_with_subscription
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
 from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    END_ROUTES, APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, \
-    show_subscription_menu, CANCEL_SUBSCRIPTION, MAIN_MENU
+    APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, \
+    show_subscription_menu, CANCEL_SUBSCRIPTION, MAIN_MENU, ADMIN_MENU, ADMIN_MENU_CALLBACK, show_admin_menu, \
+    TOTAL_USERS, RECENT_HOUR_USERS, TOTAL_SUBSCRIBED_USERS
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(
@@ -42,23 +43,13 @@ async def sync_data(forwarder: MessageForwarder):
     await data_manager.notify_users(forwarder)
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
 
     await show_main_menu(update, context)
 
     return START_ROUTES
-
-
-def create_refresh_handler(forwarder: MessageForwarder):
-    async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logger.info('success sync')
-        await sync_data(forwarder=forwarder)
-        await context.bot.send_message(update.effective_user.id, 'База даних оновлена.\nГарного вам дня 😊')
-        return START_ROUTES
-
-    return refresh_handler
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -86,14 +77,48 @@ async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     return START_ROUTES
 
 
-async def end(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Returns `ConversationHandler.END`, which tells the
-    ConversationHandler that the conversation is over.
-    """
-    query = update.callback_query
-    await query.answer()
-    await query.edit_message_text(text="See you next time!")
-    return ConversationHandler.END
+async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    await show_admin_menu(update, context)
+
+    return ADMIN_MENU
+
+
+async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    users = await get_regular_users()
+    total_users = len(users)
+    text = f'Всього користувачів: {total_users}'
+    await show_admin_menu(update, context, text)
+    return ADMIN_MENU
+
+
+async def get_recent_hour_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    current_time = datetime.datetime.utcnow()
+    last_hour = current_time - datetime.timedelta(hours=1)
+    print(last_hour)
+    users = await get_recent_users(last_hour)
+    total_users = len(users)
+    text = f'Користувачів за останню годину: {total_users}'
+    await show_admin_menu(update, context, text)
+    return ADMIN_MENU
+
+
+async def get_total_users_with_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    users = await get_users_with_subscription()
+    total_users = len(users)
+    text = f'Всього користувачів з підпискою: {total_users}'
+    await show_admin_menu(update, context, text)
+    return ADMIN_MENU
+
+
+def create_refresh_handler(forwarder: MessageForwarder):
+    async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        logger.info('success sync')
+        await sync_data(forwarder=forwarder)
+        text = 'База даних оновлена.\nГарного вам дня 😊'
+        await show_admin_menu(update, context, text_outer=text)
+        return ADMIN_MENU
+
+    return refresh_handler
 
 
 def create_filter_handler(model: Type[Ad], filters: List[Type[BaseFilter]], stage: str, forwarder: MessageForwarder):
@@ -180,8 +205,17 @@ def main() -> None:
             START_ROUTES: [
                 CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
-                CallbackQueryHandler(create_refresh_handler(forwarder=forwarder), pattern="^" + str(REFRESH_DB) + "$"),
+                CallbackQueryHandler(admin_menu, pattern="^" + str(ADMIN_MENU_CALLBACK) + "$"),
                 CallbackQueryHandler(subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$"),
+
+            ],
+            ADMIN_MENU: [
+                CallbackQueryHandler(create_refresh_handler(forwarder=forwarder), pattern="^" + str(REFRESH_DB) + "$"),
+                CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU) + "$"),
+                CallbackQueryHandler(get_total_users, pattern="^" + str(TOTAL_USERS) + "$"),
+                CallbackQueryHandler(get_recent_hour_users, pattern="^" + str(RECENT_HOUR_USERS) + "$"),
+                CallbackQueryHandler(get_total_users_with_subscription,
+                                     pattern="^" + str(TOTAL_SUBSCRIBED_USERS) + "$"),
 
             ],
             APARTMENTS: [
@@ -198,9 +232,6 @@ def main() -> None:
                 CallbackQueryHandler(cancel_subscription, pattern="^" + str(CANCEL_SUBSCRIPTION) + "$"),
                 CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU) + "$")
 
-            ],
-            END_ROUTES: [
-                CallbackQueryHandler(end, pattern="^" + str(HOUSES_STATE) + "$"),
             ],
         },
         fallbacks=[CommandHandler("start", start)],

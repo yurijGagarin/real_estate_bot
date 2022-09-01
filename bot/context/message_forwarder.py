@@ -49,3 +49,5 @@ class MessageForwarder:
             except pyrogram.errors.exceptions.MessageIdInvalid as e:
                 print(e)
                 raise MessageNotFound(message_link=message_link)
+            except pyrogram.errors.exceptions.bad_request_400.UserIsBlocked as blocked:
+                print(blocked)

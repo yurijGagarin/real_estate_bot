@@ -413,13 +413,18 @@ class AdditionalFilter(BaseFilter):
         conditions = []
         # TODO: REWRITE
         all_kids_filters_selected = len(kids_filter) == len(self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]['items'])
-        if KIDS_ABOVE_SIX_YO_PROP in kids_filter and not all_kids_filters_selected:
-            kids_filter.append(ALL_KIDS_ALLOWED_PROP)
-        conditions.append(self.model.kids.in_(kids_filter))
-        if OTHER_ANIMALS_PROP in pets_filter:
-            pets_filter.append(ALL_PETS_ALLOWED_PROP)
-            pets_filter.remove(OTHER_ANIMALS_PROP)
-        conditions.append(self.model.pets.in_(pets_filter))
+        if len(kids_filter):
+            if KIDS_ABOVE_SIX_YO_PROP in kids_filter and not all_kids_filters_selected:
+                kids_filter.append(ALL_KIDS_ALLOWED_PROP)
+            conditions.append(self.model.kids.in_(kids_filter))
+        if len(pets_filter):
+            if DOGS_ALLOWED_PROP in pets_filter or CATS_ALLOWED_PROP in pets_filter:
+                pets_filter.append(ALL_PETS_ALLOWED_PROP)
+            if OTHER_ANIMALS_PROP in pets_filter:
+                if ALL_PETS_ALLOWED_PROP not in pets_filter:
+                    pets_filter.append(ALL_PETS_ALLOWED_PROP)
+                pets_filter.remove(OTHER_ANIMALS_PROP)
+            conditions.append(self.model.pets.in_(pets_filter))
         f = and_(*conditions)
         filters.append(f)
         q = await self.get_query()
