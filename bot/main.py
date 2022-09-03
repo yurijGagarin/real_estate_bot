@@ -94,7 +94,6 @@ async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_recent_hour_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_time = datetime.datetime.utcnow()
     last_hour = current_time - datetime.timedelta(hours=1)
-    print(last_hour)
     users = await get_recent_users(last_hour)
     total_users = len(users)
     text = f'Користувачів за останню годину: {total_users}'

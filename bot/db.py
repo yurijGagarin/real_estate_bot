@@ -10,10 +10,23 @@ from sqlalchemy.sql import Select
 from telegram import Update
 
 import bot.models
-from bot.config import DB_URI
+from bot.config import DB_URI, SECOND_DB_URI
 
 engine = create_async_engine(DB_URI)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
+
+engine_cloud = create_async_engine(SECOND_DB_URI)
+async_cloud_session = sessionmaker(engine_cloud, expire_on_commit=False, class_=AsyncSession)
+
+
+async def migrate_data():
+    async with engine.connect() as conn_lite:
+        async with engine_cloud.connect() as conn_cloud:
+            for table in bot.models.Base.metadata.sorted_tables:
+                data = [dict(row) for row in await conn_lite.execute(select(table.c))]
+                stmt = table.insert().values(data)
+                await conn_cloud.execute(stmt)
+                await conn_cloud.commit()
 
 
 async def remove_data_from_db(model_name):
@@ -156,10 +169,10 @@ async def get_regular_users():
 
     return [u[0] for u in users]
 
+
 async def get_recent_users(timedelta):
     async with async_session() as session:
         result = await session.execute(select(bot.models.User).where(bot.models.User.last_active_at >= timedelta))
         users = result.fetchall()
 
     return [u[0] for u in users]
-
