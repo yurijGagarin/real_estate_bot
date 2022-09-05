@@ -15,9 +15,10 @@ from bot.context.state import State
 from bot.db import get_result, get_user, save_user, delete_model_by_link, get_model_by_link
 from bot.exceptions import MessageNotFound
 from bot.models import Ad
-from bot.navigation import ACTION_NEXT, ACTION_BACK, MAIN_MENU, LOAD_MORE_LINKS_BTN_TEXT, SUBSCRIPTION_MODE, \
-    SHOW_NEXT_PAGE, BACK_BTN, SHOW_ITEMS_PER_PAGE, \
-    NEXT_PAGE_BTN, MAIN_MENU_BTN, SUBSCRIPTION_BTN, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, show_subscription_menu
+from bot.navigation.basic_keyboard_builder import show_subscription_menu
+from bot.navigation.buttons_constants import ACTION_BACK, MAIN_MENU, SUBSCRIPTION_MODE, SHOW_NEXT_PAGE, \
+    NEXT_PAGE_BTN, MAIN_MENU_BTN, BACK_BTN, SUBSCRIPTION_BTN, ACTION_NEXT, BACK_BTN
+from bot.navigation.constants import SHOW_ITEMS_PER_PAGE, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, LOAD_MORE_LINKS_TEXT
 from bot.notifications import notify_admins
 
 
@@ -187,10 +188,10 @@ class Manager:
         text = ''
         if has_pagination and not last_page:
             page_offset += SHOW_ITEMS_PER_PAGE
-            text = LOAD_MORE_LINKS_BTN_TEXT
+            text = LOAD_MORE_LINKS_TEXT
             keyboard.append(NEXT_PAGE_BTN)
 
-        keyboard.append([BACK_BTN, MAIN_MENU_BTN])
+        keyboard.append([BACK_BTN(), MAIN_MENU_BTN])
         keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 

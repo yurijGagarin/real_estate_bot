@@ -1,27 +1,25 @@
 # Handlers Stages
-START_ROUTES = "START_STAGE"
-APARTMENTS = "APARTMENTS_STAGE"
-HOUSES = "HOUSES_STAGE"
-SUBSCRIPTION = "SUBSCRIPTION_STAGE"
-ADMIN_MENU = "ADMIN_STAGE"
-END_ROUTES = "END_STAGE"
+START_STAGE = "START_STAGE"
+APARTMENTS_STAGE = "APARTMENTS_STAGE"
+HOUSES_STAGE = "HOUSES_STAGE"
+SUBSCRIPTION_STAGE = "SUBSCRIPTION_STAGE"
+ADMIN_MENU_STAGE = "ADMIN_STAGE"
+END_STAGE = "END_STAGE"
 
-# Handlers CallbackData  States
+# Handlers CallbackData States
 APARTMENTS_STATE = 'APARTMENTS_STATE'
 HOUSES_STATE = 'HOUSES_STATE'
 SUBSCRIPTION_STATE = 'SUBSCRIPTION_STATE'
-TOTAL_USERS = 'TOTAL_USERS'
-RECENT_HOUR_USERS = 'RECENT_HOUR_USERS'
-TOTAL_SUBSCRIBED_USERS = 'TOTAL_SUBSCRIBED_USERS'
-ADMIN_MENU_CALLBACK = 'admin_menu'
-CANCEL_SUBSCRIPTION = 'CANCEL_SUBSCRIPTION'
+TOTAL_USERS_STATE = 'TOTAL_USERS_STATE'
+RECENT_HOUR_USERS_STATE = 'RECENT_HOUR_USERS_STATE'
+TOTAL_SUBSCRIBED_USERS_STATE = 'TOTAL_SUBSCRIBED_USERS_STATE'
+ADMIN_MENU_STATE = 'ADMIN_MENU_STATE'
+CANCEL_SUBSCRIPTION_STATE = 'CANCEL_SUBSCRIPTION_STATE'
+REFRESH_DB_STATE = 'REFRESH_DB_STATE'
+MAIN_MENU_STATE = 'MAIN_MENU_STATE'
 
-
-# Buttons Texts
-MAIN_MENU_TEXT = '🏠️'
-LOAD_MORE_LINKS_TEXT = "Показати ще ⤵️"
-LOAD_MORE_LINKS_BTN_TEXT = "Схоже тут є ще варіанти для тебе ❗️"
-MAIN_MENU_BTN_TEXT = "⬅️"
+# Message Texts
+LOAD_MORE_LINKS_TEXT = "Схоже тут є ще варіанти для тебе ❗️"
 WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Оберіть бажану послугу."
 SUBSCRIPTION_TEXT = "Це меню для налаштування отримання нових повідомлень, " \
                     "коли зʼявляються обʼекти по вашим критеріям пошуку." \
@@ -31,14 +29,7 @@ EMPTY_RESULT_TEXT = 'Нажаль за вашими критеріями пош�
                     '\nабо підпишіться на розсилку нових оголошень.'
 THATS_ALL_FOLKS_TEXT = 'Схоже що це всі оголошення на сьогодні,\n' \
                        'Підпишись на розсилку щоб першим знати про нові оголошення'
-NEXT_ADDITIONAL_FILTER = 'Далі'
 
-# Buttons Callbacks
-ACTION_NEXT = 'n'
-ACTION_BACK = 'b'
-MAIN_MENU = 'm'
-REFRESH_DB = 'refresh_db'
-SUBSCRIPTION_MODE = 'sub'
 
-SHOW_NEXT_PAGE = 'else'
+# Other Constants
 SHOW_ITEMS_PER_PAGE = 3
