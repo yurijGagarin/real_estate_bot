@@ -15,7 +15,8 @@ from bot.data_manager import KIDS_FILTER_TEXT, KIDS_ABOVE_SIX_YO_PROP, DOGS_ALLO
 from bot.db import get_unique_el_from_db
 from bot.log import logging
 from bot.models import Ad, Apartments, Houses
-from bot.navigation import NEXT_ADDITIONAL_FILTER, NEXT_BTN, BACK_BTN
+from bot.navigation.buttons_constants import NEXT_BTN, NEXT_BTN_TEXT, BACK_BTN, \
+    SELECT_ALL_BTN, REGULAR_BTN, SKIP_BTN_TEXT
 
 
 def function_logger(func):
@@ -97,13 +98,13 @@ class BaseFilter:
         return self.__query
 
     def build_next_btn(self):
-        next_text = 'Пропустити ➡'
+        next_text = SKIP_BTN_TEXT
         if self.has_values():
-            next_text = 'Далі ➡️'
+            next_text = NEXT_BTN_TEXT
         return NEXT_BTN(next_text, '{"n":1}')
 
     def build_back_btn(self):
-        return BACK_BTN
+        return BACK_BTN()
 
     async def build_items_keyboard(self):
         all_items = await self.get_items()
@@ -122,23 +123,26 @@ class BaseFilter:
             title = item_value
             if self.values.get(item_value):
                 title = f'{title} ✅'
-            row.append(InlineKeyboardButton(title, callback_data=data))
+            row.append(REGULAR_BTN(title, data))
 
             if len(row) == self.desired_amount_of_rows:
                 keyboard.append(row)
                 row = []
         if len(row):
             keyboard.append(row)
-
+        # TODO MAKE A FUNCTION TO HANDLE
         if has_pagination:
             buttons = []
             if self.page_idx > 0:
+                PAGE_IDX_BACK_BTN = REGULAR_BTN(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
                 buttons.append(
-                    InlineKeyboardButton(f'◀️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)))
+                    PAGE_IDX_BACK_BTN)
             if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
-                buttons.append(InlineKeyboardButton(f'▶️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)))
+                PAGE_IDX_NEXT_BTN = REGULAR_BTN(f'▶️', '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+                buttons.append(PAGE_IDX_NEXT_BTN)
             if len(buttons) > 0:
                 keyboard.append(buttons)
+
         return keyboard
 
     async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
@@ -149,10 +153,12 @@ class BaseFilter:
         selected_items = len(list(filter(None, self.values.values())))
         if self.has_select_all:
             if self.select_all and total_items == selected_items:
-                keyboard.append([InlineKeyboardButton(self.unselect_all_text, callback_data='{"%s": 0}' % SELECT_ALL)])
+                keyboard.append([SELECT_ALL_BTN(self.unselect_all_text, '{"%s": 0}' % SELECT_ALL)])
             else:
-                keyboard.append([InlineKeyboardButton(self.select_all_text, callback_data='{"%s": 1}' % SELECT_ALL)])
+                keyboard.append([SELECT_ALL_BTN(self.select_all_text, '{"%s": 1}' % SELECT_ALL)])
         return keyboard
+
+
 
     #
     async def process_action(self, payload: Payload, update: Update):
@@ -339,14 +345,14 @@ class AdditionalFilter(BaseFilter):
                 title = k
                 if self.values.get(k):
                     title = f'{title} ✅'
-                keyboard.append([InlineKeyboardButton(title, callback_data='{"%s": 1}' % k)])
+                keyboard.append([REGULAR_BTN(title, '{"%s": 1}' % k)])
         else:
             items = self.get_active_subitems()
             for k in items:
                 title = k
                 if self.values.get(k):
                     title = f'{title} ✅'
-                keyboard.append([InlineKeyboardButton(title, callback_data='{"%s": 1}' % k)])
+                keyboard.append([REGULAR_BTN(title, '{"%s": 1}' % k)])
         return keyboard
 
     async def build_text(self, is_final=False, is_active=False):
@@ -373,10 +379,10 @@ class AdditionalFilter(BaseFilter):
         text.append(' ')
         return '\n'.join(text)
 
-
+    # TODO BTN
     def build_next_btn(self):
         if not self.allow_next() and self.has_selected_subitems():
-            return NEXT_BTN(NEXT_ADDITIONAL_FILTER, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+            return NEXT_BTN(NEXT_BTN_TEXT, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
         if not self.has_selected_subitems():
             return None
 
@@ -384,8 +390,10 @@ class AdditionalFilter(BaseFilter):
 
     def build_back_btn(self):
         if self.page_idx > 0:
-            return InlineKeyboardButton(f'◀️', callback_data='{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
+            return BACK_BTN(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
         return super().build_back_btn()
+
+
 
     def get_active_subitems(self):
         active_item = self.get_active_item()

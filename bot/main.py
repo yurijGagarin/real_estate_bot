@@ -25,10 +25,10 @@ from bot.data_manager import DataManager
 from bot.db import get_user, save_user, get_regular_users, get_recent_users, get_users_with_subscription
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
-from bot.navigation import START_ROUTES, APARTMENTS_STATE, HOUSES_STATE, \
-    APARTMENTS, HOUSES, REFRESH_DB, show_main_menu, SUBSCRIPTION, SUBSCRIPTION_STATE, \
-    show_subscription_menu, CANCEL_SUBSCRIPTION, MAIN_MENU, ADMIN_MENU, ADMIN_MENU_CALLBACK, show_admin_menu, \
-    TOTAL_USERS, RECENT_HOUR_USERS, TOTAL_SUBSCRIBED_USERS
+from bot.navigation.basic_keyboard_builder import show_subscription_menu, show_main_menu, show_admin_menu
+from bot.navigation.constants import SUBSCRIPTION_STAGE, START_STAGE, ADMIN_MENU_STAGE, APARTMENTS_STAGE, HOUSES_STAGE,\
+    APARTMENTS_STATE, HOUSES_STATE, ADMIN_MENU_STATE, SUBSCRIPTION_STATE, REFRESH_DB_STATE, TOTAL_USERS_STATE, \
+    RECENT_HOUR_USERS_STATE, TOTAL_SUBSCRIBED_USERS_STATE, CANCEL_SUBSCRIPTION_STATE, MAIN_MENU_STATE
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(
@@ -49,7 +49,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
     await show_main_menu(update, context)
 
-    return START_ROUTES
+    return START_STAGE
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -58,7 +58,7 @@ async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> st
     state.update_context(context)
     await show_subscription_menu(update)
 
-    return SUBSCRIPTION
+    return SUBSCRIPTION_STAGE
 
 
 async def cancel_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -68,30 +68,30 @@ async def cancel_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE
     await save_user(user)
     await show_subscription_menu(update)
 
-    return SUBSCRIPTION
+    return SUBSCRIPTION_STAGE
 
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     await show_main_menu(update, context)
 
-    return START_ROUTES
+    return START_STAGE
 
 
 async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     await show_admin_menu(update, context)
 
-    return ADMIN_MENU
+    return ADMIN_MENU_STAGE
 
 
-async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     users = await get_regular_users()
     total_users = len(users)
     text = f'Всього користувачів: {total_users}'
     await show_admin_menu(update, context, text)
-    return ADMIN_MENU
+    return ADMIN_MENU_STAGE
 
 
-async def get_recent_hour_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_recent_hour_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     current_time = datetime.datetime.utcnow()
     last_hour = current_time - datetime.timedelta(hours=1)
     print(last_hour)
@@ -99,24 +99,25 @@ async def get_recent_hour_users(update: Update, context: ContextTypes.DEFAULT_TY
     total_users = len(users)
     text = f'Користувачів за останню годину: {total_users}'
     await show_admin_menu(update, context, text)
-    return ADMIN_MENU
+    return ADMIN_MENU_STAGE
 
 
-async def get_total_users_with_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_total_users_with_subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     users = await get_users_with_subscription()
     total_users = len(users)
     text = f'Всього користувачів з підпискою: {total_users}'
     await show_admin_menu(update, context, text)
-    return ADMIN_MENU
+    return ADMIN_MENU_STAGE
 
 
+# TODO Typing here
 def create_refresh_handler(forwarder: MessageForwarder):
-    async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    async def refresh_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         logger.info('success sync')
         await sync_data(forwarder=forwarder)
         text = 'База даних оновлена.\nГарного вам дня 😊'
         await show_admin_menu(update, context, text_outer=text)
-        return ADMIN_MENU
+        return ADMIN_MENU_STAGE
 
     return refresh_handler
 
@@ -139,10 +140,10 @@ def create_filter_handler(model: Type[Ad], filters: List[Type[BaseFilter]], stag
 
         if is_subscription:
             await show_subscription_menu(update)
-            return SUBSCRIPTION
+            return SUBSCRIPTION_STAGE
 
         await show_main_menu(update, context)
-        return START_ROUTES
+        return START_STAGE
 
     return handler
 
@@ -158,7 +159,7 @@ def main() -> None:
     forwarder = MessageForwarder(app=app, from_chat_id=config.FROM_CHAT_ID)
 
     FILTERS = {
-        APARTMENTS: {
+        APARTMENTS_STAGE: {
             "model": Apartments,
             "filters": [
                 AdditionalFilter,
@@ -168,30 +169,30 @@ def main() -> None:
                 PriceFilter,
 
             ],
-            "stage": APARTMENTS,
+            "stage": APARTMENTS_STAGE,
         },
-        HOUSES: {
+        HOUSES_STAGE: {
             "model": Houses,
             "filters": [
                 DistrictFilter,
                 RoomsFilter,
                 PriceFilter,
             ],
-            "stage": HOUSES,
+            "stage": HOUSES_STAGE,
         },
     }
 
     apartments_handler = create_filter_handler(
-        model=FILTERS[APARTMENTS]["model"],
-        filters=FILTERS[APARTMENTS]["filters"],
-        stage=FILTERS[APARTMENTS]["stage"],
+        model=FILTERS[APARTMENTS_STAGE]["model"],
+        filters=FILTERS[APARTMENTS_STAGE]["filters"],
+        stage=FILTERS[APARTMENTS_STAGE]["stage"],
         forwarder=forwarder,
 
     )
     houses_handler = create_filter_handler(
-        model=FILTERS[HOUSES]["model"],
-        filters=FILTERS[HOUSES]["filters"],
-        stage=FILTERS[HOUSES]["stage"],
+        model=FILTERS[HOUSES_STAGE]["model"],
+        filters=FILTERS[HOUSES_STAGE]["filters"],
+        stage=FILTERS[HOUSES_STAGE]["stage"],
         forwarder=forwarder,
     )
 
@@ -202,35 +203,36 @@ def main() -> None:
         ],
 
         states={
-            START_ROUTES: [
+            START_STAGE: [
                 CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
-                CallbackQueryHandler(admin_menu, pattern="^" + str(ADMIN_MENU_CALLBACK) + "$"),
+                CallbackQueryHandler(admin_menu, pattern="^" + str(ADMIN_MENU_STATE) + "$"),
                 CallbackQueryHandler(subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$"),
 
             ],
-            ADMIN_MENU: [
-                CallbackQueryHandler(create_refresh_handler(forwarder=forwarder), pattern="^" + str(REFRESH_DB) + "$"),
-                CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU) + "$"),
-                CallbackQueryHandler(get_total_users, pattern="^" + str(TOTAL_USERS) + "$"),
-                CallbackQueryHandler(get_recent_hour_users, pattern="^" + str(RECENT_HOUR_USERS) + "$"),
+            ADMIN_MENU_STAGE: [
+                CallbackQueryHandler(create_refresh_handler(forwarder=forwarder),
+                                     pattern="^" + str(REFRESH_DB_STATE) + "$"),
+                CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"),
+                CallbackQueryHandler(get_total_users, pattern="^" + str(TOTAL_USERS_STATE) + "$"),
+                CallbackQueryHandler(get_recent_hour_users, pattern="^" + str(RECENT_HOUR_USERS_STATE) + "$"),
                 CallbackQueryHandler(get_total_users_with_subscription,
-                                     pattern="^" + str(TOTAL_SUBSCRIBED_USERS) + "$"),
+                                     pattern="^" + str(TOTAL_SUBSCRIBED_USERS_STATE) + "$"),
 
             ],
-            APARTMENTS: [
+            APARTMENTS_STAGE: [
                 CallbackQueryHandler(apartments_handler),
                 MessageHandler(filters.Regex(re.compile(r'[0-9]+', re.IGNORECASE)), apartments_handler),
             ],
-            HOUSES: [
+            HOUSES_STAGE: [
                 CallbackQueryHandler(houses_handler),
                 MessageHandler(filters.Regex(re.compile(r'[0-9]+', re.IGNORECASE)), houses_handler),
             ],
-            SUBSCRIPTION: [
+            SUBSCRIPTION_STAGE: [
                 CallbackQueryHandler(apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"),
                 CallbackQueryHandler(houses_handler, pattern="^" + str(HOUSES_STATE) + "$"),
-                CallbackQueryHandler(cancel_subscription, pattern="^" + str(CANCEL_SUBSCRIPTION) + "$"),
-                CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU) + "$")
+                CallbackQueryHandler(cancel_subscription, pattern="^" + str(CANCEL_SUBSCRIPTION_STATE) + "$"),
+                CallbackQueryHandler(back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$")
 
             ],
         },
