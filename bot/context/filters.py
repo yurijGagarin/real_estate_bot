@@ -15,8 +15,8 @@ from bot.data_manager import KIDS_FILTER_TEXT, KIDS_ABOVE_SIX_YO_PROP, DOGS_ALLO
 from bot.db import get_unique_el_from_db
 from bot.log import logging
 from bot.models import Ad, Apartments, Houses
-from bot.navigation.buttons_constants import NEXT_BTN, NEXT_BTN_TEXT, BACK_BTN, \
-    SELECT_ALL_BTN, REGULAR_BTN, SKIP_BTN_TEXT
+from bot.navigation.buttons_constants import get_next_btn, NEXT_BTN_TEXT, get_back_btn, \
+    get_regular_btn, SKIP_BTN_TEXT
 
 
 def function_logger(func):
@@ -101,10 +101,10 @@ class BaseFilter:
         next_text = SKIP_BTN_TEXT
         if self.has_values():
             next_text = NEXT_BTN_TEXT
-        return NEXT_BTN(next_text, '{"n":1}')
+        return get_next_btn(next_text, '{"n":1}')
 
     def build_back_btn(self):
-        return BACK_BTN()
+        return get_back_btn()
 
     async def build_items_keyboard(self):
         all_items = await self.get_items()
@@ -123,7 +123,7 @@ class BaseFilter:
             title = item_value
             if self.values.get(item_value):
                 title = f'{title} ✅'
-            row.append(REGULAR_BTN(title, data))
+            row.append(get_regular_btn(title, data))
 
             if len(row) == self.desired_amount_of_rows:
                 keyboard.append(row)
@@ -134,11 +134,11 @@ class BaseFilter:
         if has_pagination:
             buttons = []
             if self.page_idx > 0:
-                PAGE_IDX_BACK_BTN = REGULAR_BTN(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
+                PAGE_IDX_BACK_BTN = get_regular_btn(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
                 buttons.append(
                     PAGE_IDX_BACK_BTN)
             if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
-                PAGE_IDX_NEXT_BTN = REGULAR_BTN(f'▶️', '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+                PAGE_IDX_NEXT_BTN = get_regular_btn(f'▶️', '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
                 buttons.append(PAGE_IDX_NEXT_BTN)
             if len(buttons) > 0:
                 keyboard.append(buttons)
@@ -153,9 +153,9 @@ class BaseFilter:
         selected_items = len(list(filter(None, self.values.values())))
         if self.has_select_all:
             if self.select_all and total_items == selected_items:
-                keyboard.append([SELECT_ALL_BTN(self.unselect_all_text, '{"%s": 0}' % SELECT_ALL)])
+                keyboard.append([get_regular_btn(self.unselect_all_text, '{"%s": 0}' % SELECT_ALL)])
             else:
-                keyboard.append([SELECT_ALL_BTN(self.select_all_text, '{"%s": 1}' % SELECT_ALL)])
+                keyboard.append([get_regular_btn(self.select_all_text, '{"%s": 1}' % SELECT_ALL)])
         return keyboard
 
 
@@ -345,14 +345,14 @@ class AdditionalFilter(BaseFilter):
                 title = k
                 if self.values.get(k):
                     title = f'{title} ✅'
-                keyboard.append([REGULAR_BTN(title, '{"%s": 1}' % k)])
+                keyboard.append([get_regular_btn(title, '{"%s": 1}' % k)])
         else:
             items = self.get_active_subitems()
             for k in items:
                 title = k
                 if self.values.get(k):
                     title = f'{title} ✅'
-                keyboard.append([REGULAR_BTN(title, '{"%s": 1}' % k)])
+                keyboard.append([get_regular_btn(title, '{"%s": 1}' % k)])
         return keyboard
 
     async def build_text(self, is_final=False, is_active=False):
@@ -382,7 +382,7 @@ class AdditionalFilter(BaseFilter):
     # TODO BTN
     def build_next_btn(self):
         if not self.allow_next() and self.has_selected_subitems():
-            return NEXT_BTN(NEXT_BTN_TEXT, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+            return get_next_btn(NEXT_BTN_TEXT, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
         if not self.has_selected_subitems():
             return None
 
@@ -390,7 +390,7 @@ class AdditionalFilter(BaseFilter):
 
     def build_back_btn(self):
         if self.page_idx > 0:
-            return BACK_BTN(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
+            return get_back_btn(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
         return super().build_back_btn()
 
 

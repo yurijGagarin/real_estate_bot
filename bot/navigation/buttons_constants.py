@@ -1,10 +1,10 @@
 from telegram import InlineKeyboardButton
 
-# Buttons patterns
 from bot.navigation.constants import APARTMENTS_STATE, HOUSES_STATE, SUBSCRIPTION_STATE, TOTAL_USERS_STATE, \
     RECENT_HOUR_USERS_STATE, TOTAL_SUBSCRIBED_USERS_STATE, REFRESH_DB_STATE, ADMIN_MENU_STATE, \
     CANCEL_SUBSCRIPTION_STATE, MAIN_MENU_STATE
 
+# Buttons patterns
 START_BUTTONS = {
     'Оренда Квартир 🏢': APARTMENTS_STATE,
     'Оренда Будинків 🏡': HOUSES_STATE,
@@ -51,11 +51,11 @@ CANCEL_SUBSCRIPTION_BTN = InlineKeyboardButton(CANCEL_SUBSCRIPTION_BTN_TEXT,
                                                callback_data=CANCEL_SUBSCRIPTION_STATE)
 
 
-def NEXT_BTN(text: str, callback: str) -> InlineKeyboardButton:
+def get_next_btn(text: str, callback: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
 
 
-def BACK_BTN(text: str = BACK_BTN_TEXT, callback: str = '{"%s":1}' % ACTION_BACK) -> InlineKeyboardButton:
+def get_back_btn(text: str = BACK_BTN_TEXT, callback: str = '{"%s":1}' % ACTION_BACK) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
 
 
@@ -63,5 +63,5 @@ def SELECT_ALL_BTN(text: str, callback: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
 
 
-def REGULAR_BTN(text: str, callback: str) -> InlineKeyboardButton:
+def get_regular_btn(text: str, callback: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
