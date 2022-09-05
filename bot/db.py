@@ -113,19 +113,44 @@ async def save_user(user: bot.models.User):
     return user
 
 
-async def get_users_with_subscription() -> List[bot.models.User]:
+async def get_users(search) -> List[bot.models.User]:
     async with async_session() as session:
-        stmt = select(bot.models.User).where(bot.models.User.subscription != None)
-        users = await session.execute(stmt)
-        return [u[0] for u in users]
-
-
-async def get_admin_users() -> List[bot.models.User]:
-    async with async_session() as session:
-        stmt = select(bot.models.User).where(bot.models.User.is_admin == True)
+        stmt = select(bot.models.User).where(search)
         result = await session.execute(stmt)
         users = result.fetchall()
         return [u[0] for u in users]
+
+
+def get_user_with_subscription_condition():
+    return bot.models.User.subscription != None
+
+
+def get_admins():
+    return bot.models.User.is_admin == True
+
+
+def get_regular_users():
+    return bot.models.User.is_admin != True
+
+
+def get_users_for_timedelta(timedelta):
+    return bot.models.User.last_active_at >= timedelta
+
+
+async def get_users_with_subscription() -> List[bot.models.User]:
+    return await get_users(get_user_with_subscription_condition())
+
+
+async def get_admin_users() -> List[bot.models.User]:
+    return await get_users(get_admins())
+
+
+async def get_all_users():
+    return await get_users(get_regular_users())
+
+
+async def get_recent_users(timedelta):
+    return await get_users(get_users_for_timedelta(timedelta))
 
 
 async def get_user_subscription(user: bot.models.User) -> List[str]:
@@ -147,19 +172,3 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
         return links
-
-
-async def get_regular_users():
-    async with async_session() as session:
-        result = await session.execute(select(bot.models.User).where(bot.models.User.is_admin != True))
-        users = result.fetchall()
-
-    return [u[0] for u in users]
-
-async def get_recent_users(timedelta):
-    async with async_session() as session:
-        result = await session.execute(select(bot.models.User).where(bot.models.User.last_active_at >= timedelta))
-        users = result.fetchall()
-
-    return [u[0] for u in users]
-

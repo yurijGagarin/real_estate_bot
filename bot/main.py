@@ -22,11 +22,12 @@ from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.state import State
 from bot.data_manager import DataManager
-from bot.db import get_user, save_user, get_regular_users, get_recent_users, get_users_with_subscription
+from bot.db import get_user, save_user, get_users_with_subscription, get_all_users, \
+    get_recent_users
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
 from bot.navigation.basic_keyboard_builder import show_subscription_menu, show_main_menu, show_admin_menu
-from bot.navigation.constants import SUBSCRIPTION_STAGE, START_STAGE, ADMIN_MENU_STAGE, APARTMENTS_STAGE, HOUSES_STAGE,\
+from bot.navigation.constants import SUBSCRIPTION_STAGE, START_STAGE, ADMIN_MENU_STAGE, APARTMENTS_STAGE, HOUSES_STAGE, \
     APARTMENTS_STATE, HOUSES_STATE, ADMIN_MENU_STATE, SUBSCRIPTION_STATE, REFRESH_DB_STATE, TOTAL_USERS_STATE, \
     RECENT_HOUR_USERS_STATE, TOTAL_SUBSCRIBED_USERS_STATE, CANCEL_SUBSCRIPTION_STATE, MAIN_MENU_STATE
 
@@ -84,7 +85,7 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
 
 async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    users = await get_regular_users()
+    users = await get_all_users()
     total_users = len(users)
     text = f'Всього користувачів: {total_users}'
     await show_admin_menu(update, context, text)

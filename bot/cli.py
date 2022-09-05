@@ -7,7 +7,7 @@ import click
 import bot.models
 from bot.api.google import GoogleApi
 from bot.data_manager import DataManager
-from bot.db import async_session, get_admin_users, get_regular_users, get_users_with_subscription
+from bot.db import async_session, get_admins, get_all_users, get_users_with_subscription
 
 
 @click.group()
@@ -48,7 +48,7 @@ async def sync_data():
 @cli.command()
 @coro
 async def get_admins():
-    users = await get_admin_users()
+    users = await get_admins()
     for user in users:
         print(user.id, user)
 
@@ -68,7 +68,7 @@ async def user_to_admin(user_id):
 @cli.command()
 @coro
 async def get_number_of_users():
-    users = await get_regular_users()
+    users = await get_all_users()
     print('Total users:', len(users))
     for user in users:
         print(user.id, user)
