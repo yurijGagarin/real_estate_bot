@@ -357,7 +357,7 @@ class AdditionalFilter(BaseFilter):
                 question = self.BUTTONS_MAPPING[active_item]['question']
                 return question
         if not self.has_values():
-            return None
+            return f'<b>{self.name}</b>: Не обрано\n'
         text = [f'<b>{self.name}</b>:']
         for key in self.BUTTONS_MAPPING.keys():
             if self.values.get(key):
