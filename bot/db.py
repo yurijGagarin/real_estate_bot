@@ -113,44 +113,31 @@ async def save_user(user: bot.models.User):
     return user
 
 
-async def get_users(search) -> List[bot.models.User]:
+async def query_data(query):
     async with async_session() as session:
-        stmt = select(bot.models.User).where(search)
-        result = await session.execute(stmt)
+        result = await session.execute(query)
         users = result.fetchall()
         return [u[0] for u in users]
 
 
-def get_user_with_subscription_condition():
-    return bot.models.User.subscription != None
-
-
-def get_admins():
-    return bot.models.User.is_admin == True
-
-
-def get_regular_users():
-    return bot.models.User.is_admin != True
-
-
-def get_users_for_timedelta(timedelta):
-    return bot.models.User.last_active_at >= timedelta
-
-
 async def get_users_with_subscription() -> List[bot.models.User]:
-    return await get_users(get_user_with_subscription_condition())
+    return await query_data(bot.models.User.get_user_with_subscription_query())
 
 
 async def get_admin_users() -> List[bot.models.User]:
-    return await get_users(get_admins())
+    return await query_data(bot.models.User.get_admin_query())
 
 
 async def get_all_users():
-    return await get_users(get_regular_users())
+    return await query_data(bot.models.User.get_regular_user_query())
 
 
 async def get_recent_users(timedelta):
-    return await get_users(get_users_for_timedelta(timedelta))
+    return await query_data(bot.models.User.get_users_for_timedelta_query(timedelta))
+
+
+
+
 
 
 async def get_user_subscription(user: bot.models.User) -> List[str]:

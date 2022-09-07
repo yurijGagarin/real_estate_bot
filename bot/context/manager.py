@@ -17,7 +17,7 @@ from bot.exceptions import MessageNotFound
 from bot.models import Ad
 from bot.navigation.basic_keyboard_builder import show_subscription_menu
 from bot.navigation.buttons_constants import ACTION_BACK, MAIN_MENU, SUBSCRIPTION_MODE, SHOW_NEXT_PAGE, \
-    NEXT_PAGE_BTN, MAIN_MENU_BTN, SUBSCRIPTION_BTN, ACTION_NEXT, get_back_btn
+    NEXT_PAGE_BTN, SUBSCRIPTION_BTN, ACTION_NEXT, get_back_btn, HOME_MENU_BTN
 from bot.navigation.constants import SHOW_ITEMS_PER_PAGE, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, LOAD_MORE_LINKS_TEXT
 from bot.notifications import notify_admins
 
@@ -191,7 +191,7 @@ class Manager:
             text = LOAD_MORE_LINKS_TEXT
             keyboard.append(NEXT_PAGE_BTN)
 
-        keyboard.append([get_back_btn(), MAIN_MENU_BTN])
+        keyboard.append([get_back_btn(), HOME_MENU_BTN])
         keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
