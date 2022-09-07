@@ -4,7 +4,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean, DateTime, Text, )
+    Boolean, DateTime, Text, select, )
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -26,6 +26,22 @@ class User(Base):
             self.id,
             self.nickname,
         )
+
+    @classmethod
+    def get_admin_query(cls):
+        return select(cls).where(cls.is_admin == True)
+
+    @classmethod
+    def get_regular_user_query(cls):
+        return select(cls).where(cls.is_admin != True)
+
+    @classmethod
+    def get_users_for_timedelta_query(cls, timedelta):
+        return select(cls).where(cls.last_active_at >= timedelta)
+
+    @classmethod
+    def get_user_with_subscription_query(cls):
+        return select(cls).where(cls.subscription != None)
 
 
 class Ad(Base):
