@@ -21,7 +21,7 @@ if [ -z "${COMPOSE_PROJECT_NAME}" ]; then
     COMPOSE_PROJECT_NAME="$PROJECT_NAME"
 fi
 
-SYNC_EXCLUDE=(.git node_modules .idea var/logs/* .DS_Store tmp venv __pycache__ **/dist **/node_modules .env *.sqlite *.session bot.db)
+SYNC_EXCLUDE=(.git node_modules .idea var/logs/* .DS_Store tmp venv __pycache__ **/dist **/node_modules .env *.sqlite *.session bot.db db_data/)
 
 if (( $# < 1 )); then
     echo -e "Illegal number of parameters. \nUsage sh tools.sh command"

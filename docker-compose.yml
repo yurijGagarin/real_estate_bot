@@ -1,6 +1,15 @@
 version: "3.3"
 
 services:
+  db:
+    image: postgis/postgis:14-3.2
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
+    ports:
+      - 127.0.0.1:5432:5432
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
   bot:
     build: .
     environment:
@@ -16,5 +25,5 @@ services:
     volumes:
       - ./data:/app/data
     logging:
-        options:
-            max-size: 1m
+      options:
+        max-size: 1m

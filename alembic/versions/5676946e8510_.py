@@ -23,7 +23,11 @@ def upgrade() -> None:
     op.add_column('houses', sa.Column('created_at', sa.DateTime(), nullable=True))
     op.add_column('houses', sa.Column('updated_at', sa.DateTime(), nullable=True))
     op.add_column('users', sa.Column('last_viewed_at', sa.DateTime(), nullable=True))
-    op.add_column('users', sa.Column('subscription', sa.Text(), nullable=True))
+    subscription_type = sa.Text()
+    bind = op.get_bind()
+    if bind.engine.name == 'postgresql':
+        subscription_type = sa.LargeBinary()
+    op.add_column('users', sa.Column('subscription', subscription_type, nullable=True))
     # ### end Alembic commands ###
 
 

@@ -2,7 +2,7 @@ import datetime
 from operator import or_
 from typing import Dict, List, Type
 
-from sqlalchemy import select, column, Column, delete, desc
+from sqlalchemy import select, column, Column, delete, desc, Integer
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.serializer import loads
 from sqlalchemy.orm import sessionmaker
@@ -70,7 +70,10 @@ async def delete_model_by_link(model: Type[bot.models.Ad], link: str):
 async def get_unique_el_from_db(source_query: Select, col: Column):
     async with async_session() as session:
         column_obj = column(col.key)
-        query = select(column_obj).distinct().select_from(source_query).filter(column_obj != '').order_by(column_obj)
+
+        query = select(column_obj).distinct().select_from(source_query).order_by(column_obj)
+        if not isinstance(col.type, Integer):
+            query = query.filter(column_obj != ' ')
         result = await session.execute(query)
 
         value = result.fetchall()
@@ -136,10 +139,6 @@ async def get_recent_users(timedelta):
     return await query_data(bot.models.User.get_users_for_timedelta_query(timedelta))
 
 
-
-
-
-
 async def get_user_subscription(user: bot.models.User) -> List[str]:
     async with async_session() as session:
         serialized = user.subscription
@@ -159,3 +158,16 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
         return links
+
+
+async def migrate_data(new_db_uri):
+    new_engine = create_async_engine(new_db_uri)
+
+    async with engine.connect() as conn:
+        async with new_engine.connect() as new_conn:
+            for table in bot.models.Base.metadata.sorted_tables:
+                data = [dict(row) for row in await conn.execute(select(table.c))]
+                if len(data):
+                    stmt = table.insert().values(data)
+                    await new_conn.execute(stmt)
+                    await new_conn.commit()

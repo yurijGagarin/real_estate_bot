@@ -4,7 +4,7 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean, DateTime, Text, select, )
+    Boolean, DateTime, Text, select, BigInteger, LargeBinary, )
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -13,12 +13,12 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     is_admin = Column(Boolean, default=False)
     nickname = Column(String)
     last_viewed_at = Column(DateTime, default=datetime.datetime.utcnow)
     last_active_at = Column(DateTime, default=datetime.datetime.utcnow)
-    subscription = Column(Text, nullable=True)
+    subscription = Column(LargeBinary, nullable=True)
     subscription_text = Column(Text, nullable=True)
 
     def __repr__(self):
@@ -46,7 +46,7 @@ class User(Base):
 
 class Ad(Base):
     __abstract__ = True
-    id = Column(Integer, primary_key=True)
+    id = Column(BigInteger, primary_key=True)
     rent_price = Column(Integer, nullable=False)
     currency = Column(String, nullable=False)
     link = Column(String, nullable=False)
