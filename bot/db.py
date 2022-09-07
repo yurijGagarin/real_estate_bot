@@ -10,9 +10,9 @@ from sqlalchemy.sql import Select
 from telegram import Update
 
 import bot.models
-from bot.config import DB_URI, SECOND_DB_URI
+from bot.config import DB_URI
 
-engine = create_async_engine(SECOND_DB_URI)
+engine = create_async_engine(DB_URI)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
@@ -139,10 +139,6 @@ async def get_recent_users(timedelta):
     return await query_data(bot.models.User.get_users_for_timedelta_query(timedelta))
 
 
-
-
-
-
 async def get_user_subscription(user: bot.models.User) -> List[str]:
     async with async_session() as session:
         serialized = user.subscription
@@ -164,15 +160,14 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
         return links
 
 
-engine_cloud = create_async_engine(SECOND_DB_URI)
-async_cloud_session = sessionmaker(engine_cloud, expire_on_commit=False, class_=AsyncSession)
+async def migrate_data(new_db_uri):
+    new_engine = create_async_engine(new_db_uri)
 
-
-async def migrate_data():
-    async with engine.connect() as conn_lite:
-        async with engine_cloud.connect() as conn_cloud:
+    async with engine.connect() as conn:
+        async with new_engine.connect() as new_conn:
             for table in bot.models.Base.metadata.sorted_tables:
-                data = [dict(row) for row in await conn_lite.execute(select(table.c))]
-                stmt = table.insert().values(data)
-                await conn_cloud.execute(stmt)
-                await conn_cloud.commit()
+                data = [dict(row) for row in await conn.execute(select(table.c))]
+                if len(data):
+                    stmt = table.insert().values(data)
+                    await new_conn.execute(stmt)
+                    await new_conn.commit()

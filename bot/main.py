@@ -162,13 +162,12 @@ def main() -> None:
         APARTMENTS_STAGE: {
             "model": Apartments,
             "filters": [
-                RoomsFilter,
+
                 AdditionalFilter,
                 DistrictFilter,
                 ResidentialComplexFilter,
-
+                RoomsFilter,
                 PriceFilter,
-
 
             ],
             "stage": APARTMENTS_STAGE,
