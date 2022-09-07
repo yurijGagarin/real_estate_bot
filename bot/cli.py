@@ -7,7 +7,7 @@ import click
 import bot.models
 from bot.api.google import GoogleApi
 from bot.data_manager import DataManager
-from bot.db import async_session, get_admins, get_all_users, get_users_with_subscription
+from bot.db import async_session, get_admins, get_all_users, get_users_with_subscription, migrate_data
 
 
 @click.group()
@@ -82,6 +82,11 @@ async def get_number_of_users_with_subscription():
     for user in users:
         print(user.id, user.subscription_text, user, )
 
+@cli.command()
+@coro
+async def migrate_data_cmd():
+    await migrate_data()
+    print('migrated')
 
 if __name__ == "__main__":
     cli()

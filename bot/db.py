@@ -2,7 +2,7 @@ import datetime
 from operator import or_
 from typing import Dict, List, Type
 
-from sqlalchemy import select, column, Column, delete, desc
+from sqlalchemy import select, column, Column, delete, desc, Integer
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.serializer import loads
 from sqlalchemy.orm import sessionmaker
@@ -10,9 +10,9 @@ from sqlalchemy.sql import Select
 from telegram import Update
 
 import bot.models
-from bot.config import DB_URI
+from bot.config import DB_URI, SECOND_DB_URI
 
-engine = create_async_engine(DB_URI)
+engine = create_async_engine(SECOND_DB_URI)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
@@ -70,7 +70,10 @@ async def delete_model_by_link(model: Type[bot.models.Ad], link: str):
 async def get_unique_el_from_db(source_query: Select, col: Column):
     async with async_session() as session:
         column_obj = column(col.key)
-        query = select(column_obj).distinct().select_from(source_query).filter(column_obj != '').order_by(column_obj)
+
+        query = select(column_obj).distinct().select_from(source_query).order_by(column_obj)
+        if not isinstance(col.type, Integer):
+            query = query.filter(column_obj != ' ')
         result = await session.execute(query)
 
         value = result.fetchall()
@@ -172,3 +175,17 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
         return links
+
+
+engine_cloud = create_async_engine(SECOND_DB_URI)
+async_cloud_session = sessionmaker(engine_cloud, expire_on_commit=False, class_=AsyncSession)
+
+
+async def migrate_data():
+    async with engine.connect() as conn_lite:
+        async with engine_cloud.connect() as conn_cloud:
+            for table in bot.models.Base.metadata.sorted_tables:
+                data = [dict(row) for row in await conn_lite.execute(select(table.c))]
+                stmt = table.insert().values(data)
+                await conn_cloud.execute(stmt)
+                await conn_cloud.commit()
