@@ -130,7 +130,6 @@ class BaseFilter:
                 row = []
         if len(row):
             keyboard.append(row)
-        # TODO MAKE A FUNCTION TO HANDLE
         if has_pagination:
             buttons = []
             if self.page_idx > 0:
@@ -293,7 +292,8 @@ class RoomsFilter(BaseFilter):
         rooms_qty = await self.get_rooms_qty()
         items = []
         for r_qty in range(1, self.MAX_ROOMS):
-            if self.values[str(r_qty)]:
+            key = self.ROOM_BUTTONS_MAPPING.get(str(r_qty))
+            if key and self.values[key]:
                 items.append(r_qty)
             try:
                 rooms_qty.remove(r_qty)

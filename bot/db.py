@@ -12,7 +12,7 @@ from telegram import Update
 import bot.models
 from bot.config import DB_URI
 
-engine = create_async_engine(DB_URI)
+engine = create_async_engine(DB_URI, echo=True,  echo_pool='debug')
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
