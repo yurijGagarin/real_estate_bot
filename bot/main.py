@@ -146,32 +146,32 @@ async def get_total_users_with_subscription(
     return ADMIN_MENU_STAGE
 
 
-async def notify_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    users = await get_users_with_subscription()
-    text = (
-        "Доброго дня,\nВас турбує команда City Estate, ми хочемо сповістити Вас про те, що ми покращили функцію "
-        "підписки на нові оголошення, просимо Вас відмінити Вашу підписку і створити нову. Гарного Вам дня. З "
-        "повагою, команда City Estate. "
-    )
-    blocked_users = await send_message_to_users(bot=context.bot, users=users, text=text)
-    users_to_delete = len(blocked_users)
-    if users_to_delete:
-        for user in blocked_users:
-            user.subscription = None
-            user.subscription_text = (
-                f"З поверненням,{user.nickname}, ради Вас бачити знову."
-            )
-            await save_user(user)
-    regular_text = f"Повідомлення надіслані"
-    deleted_text = (
-        regular_text
-        + f"\nВсього було виявлено {users_to_delete} не активних користувачів"
-    )
-
-    text = deleted_text if users_to_delete else regular_text
-
-    await show_admin_menu(update, context, text)
-    return ADMIN_MENU_STAGE
+# async def notify_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+#     users = await get_users_with_subscription()
+#     text = (
+#         "Доброго дня,\nВас турбує команда City Estate, ми хочемо сповістити Вас про те, що ми покращили функцію "
+#         "підписки на нові оголошення, просимо Вас відмінити Вашу підписку і створити нову. Гарного Вам дня. З "
+#         "повагою, команда City Estate. "
+#     )
+#     blocked_users = await send_message_to_users(bot=context.bot, users=users, text=text)
+#     users_to_delete = len(blocked_users)
+#     if users_to_delete:
+#         for user in blocked_users:
+#             user.subscription = None
+#             user.subscription_text = (
+#                 f"З поверненням,{user.nickname}, ради Вас бачити знову."
+#             )
+#             await save_user(user)
+#     regular_text = f"Повідомлення надіслані"
+#     deleted_text = (
+#         regular_text
+#         + f"\nВсього було виявлено {users_to_delete} не активних користувачів"
+#     )
+#
+#     text = deleted_text if users_to_delete else regular_text
+#
+#     await show_admin_menu(update, context, text)
+#     return ADMIN_MENU_STAGE
 
 
 # TODO Typing here
@@ -296,9 +296,6 @@ def main() -> None:
                 ),
                 CallbackQueryHandler(
                     get_total_users, pattern="^" + str(TOTAL_USERS_STATE) + "$"
-                ),
-                CallbackQueryHandler(
-                    notify_users, pattern="^" + str(SEND_MSGS_STATE) + "$"
                 ),
                 CallbackQueryHandler(
                     get_recent_hour_users,

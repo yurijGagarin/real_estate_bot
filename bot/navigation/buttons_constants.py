@@ -30,7 +30,6 @@ ADMIN_BUTTONS = {
     "За минулу годину": RECENT_HOUR_USERS_STATE,
     "Всього з підпискою": TOTAL_SUBSCRIBED_USERS_STATE,
     "Оновити базу": REFRESH_DB_STATE,
-    "Надіслати повідомлення": SEND_MSGS_STATE,
 }
 # Buttons Texts
 HOME_MENU_BTN_TEXT = "🏠️"
