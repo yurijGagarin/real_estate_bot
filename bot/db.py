@@ -12,7 +12,7 @@ from telegram import Update
 import bot.models
 from bot.config import DB_URI
 
-engine = create_async_engine(DB_URI, echo=True,  echo_pool='debug')
+engine = create_async_engine(DB_URI)
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 
@@ -33,7 +33,7 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
     updated_date = datetime.datetime.utcnow()
     async with async_session() as session:
         for datum in data:
-            instance = await session.get(model, datum['id'])
+            instance = await session.get(model, datum["id"])
             if instance is None:
                 instance = model(**datum)
                 instance.updated_at = updated_date
@@ -46,7 +46,9 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
             session.add(instance)
 
         await session.commit()
-        delete_stmt = delete(model).where(or_(model.updated_at < updated_date, model.updated_at.is_(None)))
+        delete_stmt = delete(model).where(
+            or_(model.updated_at < updated_date, model.updated_at.is_(None))
+        )
         await session.execute(delete_stmt)
         await session.commit()
         print(delete_stmt)
@@ -71,9 +73,11 @@ async def get_unique_el_from_db(source_query: Select, col: Column):
     async with async_session() as session:
         column_obj = column(col.key)
 
-        query = select(column_obj).distinct().select_from(source_query).order_by(column_obj)
+        query = (
+            select(column_obj).distinct().select_from(source_query).order_by(column_obj)
+        )
         if not isinstance(col.type, Integer):
-            query = query.filter(column_obj != ' ')
+            query = query.filter(column_obj != " ")
         result = await session.execute(query)
 
         value = result.fetchall()
@@ -82,8 +86,10 @@ async def get_unique_el_from_db(source_query: Select, col: Column):
 
 async def get_result(source_query: Select, model: Type[bot.models.Ad]):
     async with async_session() as session:
-        col_to_search = column('link')
-        query = select(col_to_search).select_from(source_query).order_by(desc('created_at'))
+        col_to_search = column("link")
+        query = (
+            select(col_to_search).select_from(source_query).order_by(desc("created_at"))
+        )
         result = await session.execute(query)
 
         value = result.fetchall()
@@ -98,7 +104,7 @@ async def get_user(update: Update):
             user = bot.models.User(
                 id=update.effective_user.id,
                 nickname=update.effective_user.username,
-                last_active_at=datetime.datetime.utcnow()
+                last_active_at=datetime.datetime.utcnow(),
             )
             session.add(user)
             await session.commit()
@@ -107,6 +113,14 @@ async def get_user(update: Update):
             session.add(user)
             await session.commit()
     return user
+
+
+async def delete_users(users_id: List[int]):
+    async with async_session() as session:
+        for user_id in users_id:
+            user = await session.get(bot.models.User, user_id)
+            session.delete(user)
+        await session.commit()
 
 
 async def save_user(user: bot.models.User):
@@ -144,10 +158,11 @@ async def get_user_subscription(user: bot.models.User) -> List[str]:
         serialized = user.subscription
         src_query = loads(serialized, bot.models.Base.metadata, session)
         table = src_query.froms[0]
-        query = src_query \
-            .filter(table.c.created_at > user.last_viewed_at) \
-            .order_by(table.c.created_at) \
+        query = (
+            src_query.filter(table.c.created_at > user.last_viewed_at)
+            .order_by(table.c.created_at)
             .limit(3)
+        )
 
         result = await session.execute(query)
 

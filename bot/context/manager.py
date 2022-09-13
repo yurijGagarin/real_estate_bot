@@ -12,13 +12,33 @@ from bot.context.filters import BaseFilter
 from bot.context.message_forwarder import MessageForwarder
 from bot.context.payload import Payload
 from bot.context.state import State
-from bot.db import get_result, get_user, save_user, delete_model_by_link, get_model_by_link
+from bot.db import (
+    get_result,
+    get_user,
+    save_user,
+    delete_model_by_link,
+    get_model_by_link,
+)
 from bot.exceptions import MessageNotFound
 from bot.models import Ad
 from bot.navigation.basic_keyboard_builder import show_subscription_menu
-from bot.navigation.buttons_constants import ACTION_BACK, MAIN_MENU, SUBSCRIPTION_MODE, SHOW_NEXT_PAGE, \
-    NEXT_PAGE_BTN, SUBSCRIPTION_BTN, ACTION_NEXT, get_back_btn, HOME_MENU_BTN
-from bot.navigation.constants import SHOW_ITEMS_PER_PAGE, EMPTY_RESULT_TEXT, THATS_ALL_FOLKS_TEXT, LOAD_MORE_LINKS_TEXT
+from bot.navigation.buttons_constants import (
+    ACTION_BACK,
+    MAIN_MENU,
+    SUBSCRIPTION_MODE,
+    SHOW_NEXT_PAGE,
+    NEXT_PAGE_BTN,
+    SUBSCRIPTION_BTN,
+    ACTION_NEXT,
+    get_back_btn,
+    HOME_MENU_BTN,
+)
+from bot.navigation.constants import (
+    SHOW_ITEMS_PER_PAGE,
+    EMPTY_RESULT_TEXT,
+    THATS_ALL_FOLKS_TEXT,
+    LOAD_MORE_LINKS_TEXT,
+)
 from bot.notifications import notify_admins
 
 
@@ -29,8 +49,14 @@ class Manager:
     update: Update
     model: Type[Ad]
 
-    def __init__(self, model: Type[Ad], filters: List[Type[BaseFilter]], update: Update,
-                 context: ContextTypes.DEFAULT_TYPE, forwarder: MessageForwarder):
+    def __init__(
+        self,
+        model: Type[Ad],
+        filters: List[Type[BaseFilter]],
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+        forwarder: MessageForwarder,
+    ):
         self.update = update
         self.context = context
         self.state = State.from_context(context)
@@ -89,7 +115,9 @@ class Manager:
             await show_subscription_menu(self.update)
             return False
         else:
-            self.state.filters[self.state.filter_index] = await self.active_filter.process_action(payload, self.update)
+            self.state.filters[
+                self.state.filter_index
+            ] = await self.active_filter.process_action(payload, self.update)
 
         await self.edit_message()
         self.save_state()
@@ -106,7 +134,10 @@ class Manager:
 
     def move_back(self):
         last_filter = len(self.state.filters) - 1
-        if self.state.filter_index == last_filter and self.state.result_sliced_view is not None:
+        if (
+            self.state.filter_index == last_filter
+            and self.state.result_sliced_view is not None
+        ):
             self.state.result_sliced_view = None
             return
         self.state.filter_index -= 1
@@ -122,9 +153,11 @@ class Manager:
         if next_btn is not None:
             navigation_row.append(next_btn)
         kbrd.append(navigation_row)
-        text = ['Обрані фільтри:\n']
+        text = ["Обрані фільтри:\n"]
         if self.state.is_subscription:
-            text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
+            text = [
+                "Ви будете проінформовані про нові оголошення за такими критеріями:\n"
+            ]
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             is_active = i == self.state.filter_index
@@ -133,20 +166,24 @@ class Manager:
         keyboard = InlineKeyboardMarkup(kbrd)
         callback_query = self.update.callback_query
         if callback_query is None:
-            callback_query = self.context.user_data['callback_query']
+            callback_query = self.context.user_data["callback_query"]
 
-        new_text = '\n'.join(text)
+        new_text = "\n".join(text)
 
         # Edit message only if it has diff
-        if not self.context.user_data.get('callback_query') or \
-                new_text != callback_query.message.text or \
-                keyboard.inline_keyboard != callback_query.message.reply_markup.inline_keyboard:
-            edit_result = await callback_query.edit_message_text(text=new_text, reply_markup=keyboard,
-                                                                 parse_mode='HTML')
+        if (
+            not self.context.user_data.get("callback_query")
+            or new_text != callback_query.message.text
+            or keyboard.inline_keyboard
+            != callback_query.message.reply_markup.inline_keyboard
+        ):
+            edit_result = await callback_query.edit_message_text(
+                text=new_text, reply_markup=keyboard, parse_mode="HTML"
+            )
 
             if isinstance(edit_result, Message):
                 callback_query.message = edit_result
-            self.context.user_data['callback_query'] = callback_query
+            self.context.user_data["callback_query"] = callback_query
 
     def get_payload(self):
         message = ""
@@ -183,9 +220,10 @@ class Manager:
         keyboard = []
         page_offset = self.state.result_sliced_view or 0
         items_result = all_items_result[
-                       page_offset: (page_offset + SHOW_ITEMS_PER_PAGE)]
+            page_offset : (page_offset + SHOW_ITEMS_PER_PAGE)
+        ]
         last_page = len(items_result) < SHOW_ITEMS_PER_PAGE
-        text = ''
+        text = ""
         if has_pagination and not last_page:
             page_offset += SHOW_ITEMS_PER_PAGE
             text = LOAD_MORE_LINKS_TEXT
@@ -197,14 +235,17 @@ class Manager:
 
         if empty_result:
             text = EMPTY_RESULT_TEXT
-            return await self.update.callback_query.edit_message_text(text=text, reply_markup=reply_markup)
+            return await self.update.callback_query.edit_message_text(
+                text=text, reply_markup=reply_markup
+            )
         if last_page:
             text = THATS_ALL_FOLKS_TEXT
-
-        await self.forwarder.forward_estates_to_user(user_id=self.update.effective_user.id, message_links=items_result)
-        await self.context.bot.send_message(chat_id=self.update.effective_chat.id,
-                                            text=text,
-                                            reply_markup=reply_markup)
+        await self.forwarder.forward_estates_to_user(
+            user_id=self.update.effective_user.id, message_links=items_result
+        )
+        await self.context.bot.send_message(
+            chat_id=self.update.effective_chat.id, text=text, reply_markup=reply_markup
+        )
         self.state.result_sliced_view = page_offset
         self.save_state()
 
@@ -216,11 +257,11 @@ class Manager:
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized
-        text = ['Ви будете проінформовані про нові оголошення за такими критеріями:\n']
+        text = ["Ви будете проінформовані про нові оголошення за такими критеріями:\n"]
         for i in range(self.state.filter_index + 1):
             f = self.filters[i]
             text.append(await f.build_text(is_final=True, is_active=False))
-        user.subscription_text = '\n'.join(text)
+        user.subscription_text = "\n".join(text)
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
         await self.reset_state()

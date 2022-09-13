@@ -9,14 +9,26 @@ from telegram import InlineKeyboardButton, Update
 
 from bot.api.monobank_currency import get_exchange_rates
 from bot.context.payload import Payload
-from bot.data_manager import KIDS_FILTER_TEXT, KIDS_ABOVE_SIX_YO_PROP, DOGS_ALLOWED_PROP, \
-    CATS_ALLOWED_PROP, ALL_KIDS_ALLOWED_PROP, PETS_FILTER_TEXT, OTHER_ANIMALS_PROP, \
-    ALL_PETS_ALLOWED_PROP
+from bot.data_manager import (
+    KIDS_FILTER_TEXT,
+    KIDS_ABOVE_SIX_YO_PROP,
+    DOGS_ALLOWED_PROP,
+    CATS_ALLOWED_PROP,
+    ALL_KIDS_ALLOWED_PROP,
+    PETS_FILTER_TEXT,
+    OTHER_ANIMALS_PROP,
+    ALL_PETS_ALLOWED_PROP,
+)
 from bot.db import get_unique_el_from_db
 from bot.log import logging
 from bot.models import Ad, Apartments, Houses
-from bot.navigation.buttons_constants import get_next_btn, NEXT_BTN_TEXT, get_back_btn, \
-    get_regular_btn, SKIP_BTN_TEXT
+from bot.navigation.buttons_constants import (
+    get_next_btn,
+    NEXT_BTN_TEXT,
+    get_back_btn,
+    get_regular_btn,
+    SKIP_BTN_TEXT,
+)
 
 
 def function_logger(func):
@@ -28,9 +40,9 @@ def function_logger(func):
     return wrapper
 
 
-SELECTED_VALUES = 'v'
-SELECT_ALL = 's'
-PAGE_IDX = 'p'
+SELECTED_VALUES = "v"
+SELECT_ALL = "s"
+PAGE_IDX = "p"
 
 ITEMS_PER_PAGE = 20
 
@@ -38,16 +50,18 @@ ITEMS_PER_PAGE = 20
 class BaseFilter:
     __query: Optional[Select]
     name: str
-    select_all_text = 'Обрати всі ✅'
-    unselect_all_text = 'Зняти виділення з усіх ❌'
+    select_all_text = "Обрати всі ✅"
+    unselect_all_text = "Зняти виділення з усіх ❌"
     has_select_all: bool
     desired_amount_of_rows: int = 2
 
-    def __init__(self,
-                 model: Type[Ad],
-                 state: Optional[Dict],
-                 prev_filter: Optional['BaseFilter'] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        model: Type[Ad],
+        state: Optional[Dict],
+        prev_filter: Optional["BaseFilter"] = None,
+        name: Optional[str] = None,
+    ):
 
         if name:
             self.name = name
@@ -111,18 +125,22 @@ class BaseFilter:
         all_items_len = len(all_items)
         has_pagination = all_items_len > ITEMS_PER_PAGE
 
-        items = all_items[ITEMS_PER_PAGE * self.page_idx: (self.page_idx + 1) * ITEMS_PER_PAGE]
+        items = all_items[
+            ITEMS_PER_PAGE * self.page_idx : (self.page_idx + 1) * ITEMS_PER_PAGE
+        ]
 
         keyboard = []
         row = []
         for i, item in enumerate(items):
             item_value = item
-            data = json.dumps({
-                SELECTED_VALUES: i + (self.page_idx * ITEMS_PER_PAGE),
-            })
+            data = json.dumps(
+                {
+                    SELECTED_VALUES: i + (self.page_idx * ITEMS_PER_PAGE),
+                }
+            )
             title = item_value
             if self.values.get(item_value):
-                title = f'{title} ✅'
+                title = f"{title} ✅"
             row.append(get_regular_btn(title, data))
 
             if len(row) == self.desired_amount_of_rows:
@@ -133,11 +151,14 @@ class BaseFilter:
         if has_pagination:
             buttons = []
             if self.page_idx > 0:
-                PAGE_IDX_BACK_BTN = get_regular_btn(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
-                buttons.append(
-                    PAGE_IDX_BACK_BTN)
+                PAGE_IDX_BACK_BTN = get_regular_btn(
+                    f"◀️", '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1)
+                )
+                buttons.append(PAGE_IDX_BACK_BTN)
             if self.page_idx < (all_items_len / ITEMS_PER_PAGE - 1):
-                PAGE_IDX_NEXT_BTN = get_regular_btn(f'▶️', '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+                PAGE_IDX_NEXT_BTN = get_regular_btn(
+                    f"▶️", '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)
+                )
                 buttons.append(PAGE_IDX_NEXT_BTN)
             if len(buttons) > 0:
                 keyboard.append(buttons)
@@ -152,12 +173,14 @@ class BaseFilter:
         selected_items = len(list(filter(None, self.values.values())))
         if self.has_select_all:
             if self.select_all and total_items == selected_items:
-                keyboard.append([get_regular_btn(self.unselect_all_text, '{"%s": 0}' % SELECT_ALL)])
+                keyboard.append(
+                    [get_regular_btn(self.unselect_all_text, '{"%s": 0}' % SELECT_ALL)]
+                )
             else:
-                keyboard.append([get_regular_btn(self.select_all_text, '{"%s": 1}' % SELECT_ALL)])
+                keyboard.append(
+                    [get_regular_btn(self.select_all_text, '{"%s": 1}' % SELECT_ALL)]
+                )
         return keyboard
-
-
 
     #
     async def process_action(self, payload: Payload, update: Update):
@@ -184,12 +207,12 @@ class BaseFilter:
         items = await self.get_items()
         total_items = len(items)
         selected_items = len(list(filter(None, self.values.values())))
-        values = 'Не вибрано'
+        values = "Не вибрано"
         if total_items == selected_items:
-            values = f'Всі {self.name}'
+            values = f"Всі {self.name}"
         elif selected_items:
-            values = ', '.join([k for k in items if self.values.get(k)])
-        return f'<b>{self.name}</b>: ' + values + '\n'
+            values = ", ".join([k for k in items if self.values.get(k)])
+        return f"<b>{self.name}</b>: " + values + "\n"
 
     async def get_items(self):
         return []
@@ -227,14 +250,14 @@ class ColumnFilter(BaseFilter):
 
 
 class DistrictFilter(ColumnFilter):
-    name = 'Райони'
+    name = "Райони"
 
     def get_column(self) -> Column:
         return self.model.district
 
 
 class ResidentialComplexFilter(ColumnFilter):
-    name = 'ЖК'
+    name = "ЖК"
 
     model: Type[Apartments]
 
@@ -243,32 +266,33 @@ class ResidentialComplexFilter(ColumnFilter):
 
 
 class RoomsFilter(BaseFilter):
-    name = 'Кількість кімнат'
+    name = "Кількість кімнат"
 
     MAX_ROOMS = 3
     ROOM_BUTTONS_MAPPING = {
-        '1': '1️⃣',
-        '2': '2️⃣',
-        '3': '3️⃣',
-        '3+': '3️⃣+',
-
+        "1": "1️⃣",
+        "2": "2️⃣",
+        "3": "3️⃣",
+        "3+": "3️⃣+",
     }
     has_select_all = True
 
-    def __init__(self,
-                 model: Type[Ad],
-                 state: Optional[Dict],
-                 prev_filter: Optional['BaseFilter'] = None,
-                 name: Optional[str] = None):
+    def __init__(
+        self,
+        model: Type[Ad],
+        state: Optional[Dict],
+        prev_filter: Optional["BaseFilter"] = None,
+        name: Optional[str] = None,
+    ):
         super().__init__(model, state, prev_filter, name)
 
     async def build_text(self, is_final=False, is_active=False):
         items = await self.get_items()
         selected_items = len(list(filter(None, self.values.values())))
-        values = 'Не вибрано'
+        values = "Не вибрано"
         if selected_items:
-            values = ', '.join([k for k in items if self.values.get(k)])
-        return f'<b>{self.name}</b>: ' + values + '\n'
+            values = ", ".join([k for k in items if self.values.get(k)])
+        return f"<b>{self.name}</b>: " + values + "\n"
 
     async def get_items(self):
         rooms_qty = await self.get_rooms_qty()
@@ -279,9 +303,14 @@ class RoomsFilter(BaseFilter):
                 items.append(str(r_qty))
                 rooms_qty.remove(r_qty)
         if len(rooms_qty):
-            items.append(f'{self.MAX_ROOMS}+')
+            items.append(f"{self.MAX_ROOMS}+")
 
-        items = map(lambda x: self.ROOM_BUTTONS_MAPPING.get(x) if x in self.ROOM_BUTTONS_MAPPING else x, items)
+        items = map(
+            lambda x: self.ROOM_BUTTONS_MAPPING.get(x)
+            if x in self.ROOM_BUTTONS_MAPPING
+            else x,
+            items,
+        )
         return list(items)
 
     async def get_rooms_qty(self) -> List[int]:
@@ -300,7 +329,7 @@ class RoomsFilter(BaseFilter):
             except ValueError:
                 pass
 
-        if self.values[f'3️⃣+']:
+        if self.values[f"3️⃣+"]:
             items += rooms_qty
 
         query = await self.get_query()
@@ -310,29 +339,36 @@ class RoomsFilter(BaseFilter):
 
 
 class AdditionalFilter(BaseFilter):
-    name = 'Додаткові фільтри'
+    name = "Додаткові фільтри"
     has_select_all = False
 
     BUTTONS_MAPPING = {
         KIDS_FILTER_TEXT: {
-            'question': 'Скільки років Вашій молодшій дитині?',
-            'items': [ALL_KIDS_ALLOWED_PROP, KIDS_ABOVE_SIX_YO_PROP],
+            "question": "Скільки років Вашій молодшій дитині?",
+            "items": [ALL_KIDS_ALLOWED_PROP, KIDS_ABOVE_SIX_YO_PROP],
         },
         PETS_FILTER_TEXT: {
-            'question': 'Які в Вас домашні тваринки?',
-            'items': [DOGS_ALLOWED_PROP, CATS_ALLOWED_PROP, OTHER_ANIMALS_PROP],
+            "question": "Які в Вас домашні тваринки?",
+            "items": [DOGS_ALLOWED_PROP, CATS_ALLOWED_PROP, OTHER_ANIMALS_PROP],
         },
     }
 
     def allow_next(self):
-        return (self.is_first_page() and not self.has_values()) or \
-               (self.is_last_page() and self.has_selected_subitems())
+        return (self.is_first_page() and not self.has_values()) or (
+            self.is_last_page() and self.has_selected_subitems()
+        )
 
     def is_first_page(self):
         return self.page_idx == 0
 
     def is_last_page(self):
-        return self.page_idx == len([el for k, el in self.values.items() if el and k in self.BUTTONS_MAPPING.keys()])
+        return self.page_idx == len(
+            [
+                el
+                for k, el in self.values.items()
+                if el and k in self.BUTTONS_MAPPING.keys()
+            ]
+        )
 
     def has_values(self):
         return super().has_values() > 0
@@ -344,14 +380,14 @@ class AdditionalFilter(BaseFilter):
             for k in self.BUTTONS_MAPPING.keys():
                 title = k
                 if self.values.get(k):
-                    title = f'{title} ✅'
+                    title = f"{title} ✅"
                 keyboard.append([get_regular_btn(title, '{"%s": 1}' % k)])
         else:
             items = self.get_active_subitems()
             for k in items:
                 title = k
                 if self.values.get(k):
-                    title = f'{title} ✅'
+                    title = f"{title} ✅"
                 keyboard.append([get_regular_btn(title, '{"%s": 1}' % k)])
         return keyboard
 
@@ -360,29 +396,37 @@ class AdditionalFilter(BaseFilter):
         active_item = self.get_active_item()
         if is_active:
             if active_item is not None:
-                question = self.BUTTONS_MAPPING[active_item]['question']
+                question = self.BUTTONS_MAPPING[active_item]["question"]
                 return question
         if not self.has_values():
-            return f'<b>{self.name}</b>: Не обрано\n'
-        text = [f'<b>{self.name}</b>:']
+            return f"<b>{self.name}</b>: Не обрано\n"
+        text = [f"<b>{self.name}</b>:"]
         for key in self.BUTTONS_MAPPING.keys():
             if self.values.get(key):
-                selected_subitems = [k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING[key]['items']]
+                selected_subitems = [
+                    k
+                    for k, v in self.values.items()
+                    if v and k in self.BUTTONS_MAPPING[key]["items"]
+                ]
                 if not len(selected_subitems):
-                    line = f'--> {key}'
+                    line = f"--> {key}"
                 else:
                     if key == KIDS_FILTER_TEXT:
-                        line = f'--> {key} віком: ' + ', '.join(selected_subitems).lower()
+                        line = (
+                            f"--> {key} віком: " + ", ".join(selected_subitems).lower()
+                        )
                     else:
-                        line = f'--> {key}: ' + ', '.join(selected_subitems).lower()
+                        line = f"--> {key}: " + ", ".join(selected_subitems).lower()
                 text.append(line)
-        text.append(' ')
-        return '\n'.join(text)
+        text.append(" ")
+        return "\n".join(text)
 
     # TODO BTN
     def build_next_btn(self):
         if not self.allow_next() and self.has_selected_subitems():
-            return get_next_btn(NEXT_BTN_TEXT, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1))
+            return get_next_btn(
+                NEXT_BTN_TEXT, '{"%s": %s}' % (PAGE_IDX, self.page_idx + 1)
+            )
         if not self.has_selected_subitems():
             return None
 
@@ -390,21 +434,21 @@ class AdditionalFilter(BaseFilter):
 
     def build_back_btn(self):
         if self.page_idx > 0:
-            return get_back_btn(f'◀️', '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
+            return get_back_btn(f"◀️", '{"%s": %s}' % (PAGE_IDX, self.page_idx - 1))
         return super().build_back_btn()
-
-
 
     def get_active_subitems(self):
         active_item = self.get_active_item()
         if active_item is None:
             return []
-        return self.BUTTONS_MAPPING[active_item]['items']
+        return self.BUTTONS_MAPPING[active_item]["items"]
 
     def get_active_item(self):
         if self.is_first_page():
             return None
-        active_items = [k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING.keys()]
+        active_items = [
+            k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING.keys()
+        ]
         active_item = active_items[self.page_idx - 1]
         return active_item
 
@@ -414,14 +458,16 @@ class AdditionalFilter(BaseFilter):
         pets_filter = []
         kids_filter = []
         for k, v in self.values.items():
-            if v and k in self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]['items']:
+            if v and k in self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]["items"]:
                 kids_filter.append(k)
-            if v and k in self.BUTTONS_MAPPING[PETS_FILTER_TEXT]['items']:
+            if v and k in self.BUTTONS_MAPPING[PETS_FILTER_TEXT]["items"]:
                 pets_filter.append(k)
         filters = []
         conditions = []
         # TODO: REWRITE
-        all_kids_filters_selected = len(kids_filter) == len(self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]['items'])
+        all_kids_filters_selected = len(kids_filter) == len(
+            self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]["items"]
+        )
         if len(kids_filter):
             if KIDS_ABOVE_SIX_YO_PROP in kids_filter and not all_kids_filters_selected:
                 kids_filter.append(ALL_KIDS_ALLOWED_PROP)
@@ -462,26 +508,28 @@ class AdditionalFilter(BaseFilter):
 
 
 class PriceFilter(BaseFilter):
-    name = 'Ціна'
+    name = "Ціна"
     has_select_all = False
 
     async def build_text(self, is_final=False, is_active=False):
-        to_text = 'до ' + str(self.values['price_to']) + ' грн'
+        to_text = "до " + str(self.values["price_to"]) + " грн"
         if not self.has_values() and is_final:
-            return f'<b>{self.name}</b>: ' + 'Весь діапазон цін'
-        elif not self.values['price_to']:
-            return f'<b>{self.name}</b>: ' \
-                   f'<i>Надішліть повідомлення з максимальною ціною в гривні</i> ✍'
+            return f"<b>{self.name}</b>: " + "Весь діапазон цін"
+        elif not self.values["price_to"]:
+            return (
+                f"<b>{self.name}</b>: "
+                f"<i>Надішліть повідомлення з максимальною ціною в гривні</i> ✍"
+            )
 
         else:
-            return f'<b>{self.name}</b>: ' + to_text
+            return f"<b>{self.name}</b>: " + to_text
 
     async def process_action(self, payload: Payload, update: Update):
         try:
             number = int(payload.message.strip())
             if number:
-                if not self.values['price_to']:
-                    self.values['price_to'] = number
+                if not self.values["price_to"]:
+                    self.values["price_to"] = number
         except ValueError:
             pass
 
@@ -491,7 +539,7 @@ class PriceFilter(BaseFilter):
         return dict(self.state)
 
     def has_values(self):
-        return self.values['price_to']
+        return self.values["price_to"]
 
     def allow_next(self):
         return True
@@ -503,8 +551,8 @@ class PriceFilter(BaseFilter):
         if not self.has_values():
             return q.filter()
 
-        price_from = self.values['price_to'] * 0.5
-        price_to = self.values['price_to'] * 1.1
+        price_from = self.values["price_to"] * 0.5
+        price_to = self.values["price_to"] * 1.1
         currencies = get_exchange_rates()
 
         filters = []
@@ -526,15 +574,15 @@ class PriceFilter(BaseFilter):
 
 
 LIVING_AREAS = {
-    '< 100м2': [0, 100],
-    '100-200м2': [100, 200],
-    '200-300м2': [200, 300],
-    '> 300м2': [300, 10000],
+    "< 100м2": [0, 100],
+    "100-200м2": [100, 200],
+    "200-300м2": [200, 300],
+    "> 300м2": [300, 10000],
 }
 
 
 class LivingAreaFilter(BaseFilter):
-    name = 'Площа'
+    name = "Площа"
     has_select_all = False
     model: Type[Houses]
 
@@ -556,6 +604,8 @@ class LivingAreaFilter(BaseFilter):
         area_from_v = min(area_from)
         area_to_v = max(area_to)
 
-        stmt = and_(area_from_v <= self.model.living_area, self.model.living_area <= area_to_v)
+        stmt = and_(
+            area_from_v <= self.model.living_area, self.model.living_area <= area_to_v
+        )
         q = q.filter(stmt)
         return q
