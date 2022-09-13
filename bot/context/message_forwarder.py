@@ -1,9 +1,12 @@
 import logging
-from typing import List
+from typing import List, Type
 
+import bot.models
 import pyrogram.errors.exceptions.all
+import telegram
 from pyrogram import Client
 
+from bot.db import get_admin_users, save_user, async_session
 from bot.exceptions import MessageNotFound
 
 logger = logging.getLogger(__name__)
@@ -19,11 +22,13 @@ class MessageForwarder:
 
     @staticmethod
     def get_message_id_from_link(link):
-        return int(link.split('/')[-1].split('\n')[0].split('?')[0])
+        return int(link.split("/")[-1].split("\n")[0].split("?")[0])
 
     async def forward_message(self, message_link: str, chat_id: int):
         message_id = MessageForwarder.get_message_id_from_link(message_link)
-        messages = await self.app.get_messages(chat_id=self.from_chat_id, message_ids=[message_id])
+        messages = await self.app.get_messages(
+            chat_id=self.from_chat_id, message_ids=[message_id]
+        )
 
         if len(messages) == 0:
             raise MessageNotFound(message_link=message_link)
@@ -31,7 +36,9 @@ class MessageForwarder:
         message = messages[0]
         message_ids = [message.id]
         if message.media_group_id is not None:
-            media_group = await self.app.get_media_group(chat_id=self.from_chat_id, message_id=message_id)
+            media_group = await self.app.get_media_group(
+                chat_id=self.from_chat_id, message_id=message_id
+            )
             message_ids += [m.id for m in media_group]
 
         await self.app.forward_messages(
@@ -41,13 +48,27 @@ class MessageForwarder:
         )
 
     async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
-        logger.info('Forward messages %s to user %s', message_links, user_id)
+        logger.info("Forward messages %s to user %s", message_links, user_id)
+        async with async_session() as session:
+            user = await session.get(bot.models.User, user_id)
 
         for message_link in message_links:
             try:
-                await self.forward_message(message_link=message_link, chat_id=user_id)
-            except pyrogram.errors.exceptions.MessageIdInvalid as e:
-                print(e)
+                await self.forward_message(message_link=message_link, chat_id=user.id)
+            except pyrogram.errors.exceptions.MessageIdInvalid:
                 raise MessageNotFound(message_link=message_link)
-            except pyrogram.errors.exceptions.bad_request_400.UserIsBlocked as blocked:
-                print(blocked)
+            except pyrogram.errors.exceptions.bad_request_400.UserIsBlocked:
+
+                error_text = (
+                    f"Користувач з id: {user.id} припинив роботу бота.\nВідправка повідомлення до нього "
+                    f"неможлива. Статус підписки змінено."
+                )
+                user.subscription = None
+                user.subscription_text = (
+                    f"З поверненням,{user.nickname}, ради Вас бачити знову."
+                )
+                await save_user(user)
+                admin_users = await get_admin_users()
+                for admin in admin_users:
+                    await self.app.send_message(chat_id=admin.id, text=error_text)
+                break

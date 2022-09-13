@@ -4,7 +4,13 @@ from sqlalchemy import (
     Column,
     Integer,
     String,
-    Boolean, DateTime, Text, select, BigInteger, LargeBinary, )
+    Boolean,
+    DateTime,
+    Text,
+    select,
+    BigInteger,
+    LargeBinary,
+)
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()

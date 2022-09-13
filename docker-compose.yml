@@ -10,6 +10,9 @@ services:
       - 127.0.0.1:5432:5432
     volumes:
       - ./db_data:/var/lib/postgresql/data
+    logging:
+      options:
+        max-size: 1m
   bot:
     build: .
     environment:
