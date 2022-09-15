@@ -11,7 +11,6 @@ from bot.navigation.constants import (
     ADMIN_MENU_STATE,
     CANCEL_SUBSCRIPTION_STATE,
     MAIN_MENU_STATE,
-    SEND_MSGS_STATE, SEND_MEDIA_TO_CHAT_STATE,
 )
 
 # Buttons patterns
@@ -30,7 +29,6 @@ ADMIN_BUTTONS = {
     "За минулу годину": RECENT_HOUR_USERS_STATE,
     "Всього з підпискою": TOTAL_SUBSCRIBED_USERS_STATE,
     "Оновити базу": REFRESH_DB_STATE,
-    "Надіслати відео": SEND_MEDIA_TO_CHAT_STATE,
 }
 # Buttons Texts
 HOME_MENU_BTN_TEXT = "🏠️"
@@ -75,7 +73,7 @@ def get_next_btn(text: str, callback: str) -> InlineKeyboardButton:
 
 
 def get_back_btn(
-    text: str = BACK_BTN_TEXT, callback: str = '{"%s":1}' % ACTION_BACK
+        text: str = BACK_BTN_TEXT, callback: str = '{"%s":1}' % ACTION_BACK
 ) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
 

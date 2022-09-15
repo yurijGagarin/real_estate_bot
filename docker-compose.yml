@@ -24,9 +24,12 @@ services:
       API_HASH: '${API_HASH}'
       API_ID: '${API_ID}'
       SENTRY_DSN: '${SENTRY_DSN}'
+      STATIC_FROM_CHAT_ID: '${STATIC_FROM_CHAT_ID}'
+      WELCOME_VIDEO: '${WELCOME_VIDEO}'
     restart: always
     volumes:
       - ./data:/app/data
+      - ./static:/app/static
     logging:
       options:
         max-size: 1m

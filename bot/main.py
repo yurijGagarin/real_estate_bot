@@ -18,7 +18,6 @@ from telegram.ext import (
 )
 
 from bot import config
-from bot.config import STATIC_FILES_CHAT, WELCOME_VIDEO
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -59,8 +58,7 @@ from bot.navigation.constants import (
     RECENT_HOUR_USERS_STATE,
     TOTAL_SUBSCRIBED_USERS_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE, SEND_MEDIA_TO_CHAT_STATE,
-)
+    MAIN_MENU_STATE, )
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN, traces_sample_rate=1.0)
@@ -85,8 +83,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 
         await forward_static_content(
             chat_id=update.effective_user.id,
-            from_chat_id=STATIC_FILES_CHAT,
-            message_id=WELCOME_VIDEO,
+            from_chat_id=config.STATIC_FROM_CHAT_ID,
+            message_id=config.WELCOME_VIDEO,
             context=context
         )
     await show_main_menu(update, context)
@@ -97,8 +95,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     await forward_static_content(
         chat_id=update.effective_user.id,
-        from_chat_id=STATIC_FILES_CHAT,
-        message_id=WELCOME_VIDEO,
+        from_chat_id=config.STATIC_FROM_CHAT_ID,
+        message_id=config.WELCOME_VIDEO,
         context=context
     )
     await show_main_menu(update, context)
@@ -167,47 +165,6 @@ async def get_total_users_with_subscription(
     text = f"Всього користувачів з підпискою: {total_users}"
     await show_admin_menu(update, context, text)
     return ADMIN_MENU_STAGE
-
-
-async def send_media_to_chat(
-        update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> str:
-    text = "Відео надіслано"
-    await context.bot.sendVideo(chat_id=STATIC_FILES_CHAT,
-                                video=open('./static/City_Estate_rent_bot_video_guide.mp4', 'rb'),
-                                supports_streaming=True,
-                                width=920,
-                                height=1980)
-    await show_admin_menu(update, context, text)
-    return ADMIN_MENU_STAGE
-
-
-# async def notify_users(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-#     users = await get_users_with_subscription()
-#     text = (
-#         "Доброго дня,\nВас турбує команда City Estate, ми хочемо сповістити Вас про те, що ми покращили функцію "
-#         "підписки на нові оголошення, просимо Вас відмінити Вашу підписку і створити нову. Гарного Вам дня. З "
-#         "повагою, команда City Estate. "
-#     )
-#     blocked_users = await send_message_to_users(bot=context.bot, users=users, text=text)
-#     users_to_delete = len(blocked_users)
-#     if users_to_delete:
-#         for user in blocked_users:
-#             user.subscription = None
-#             user.subscription_text = (
-#                 f"З поверненням,{user.nickname}, ради Вас бачити знову."
-#             )
-#             await save_user(user)
-#     regular_text = f"Повідомлення надіслані"
-#     deleted_text = (
-#         regular_text
-#         + f"\nВсього було виявлено {users_to_delete} не активних користувачів"
-#     )
-#
-#     text = deleted_text if users_to_delete else regular_text
-#
-#     await show_admin_menu(update, context, text)
-#     return ADMIN_MENU_STAGE
 
 
 # TODO Typing here
@@ -329,9 +286,6 @@ def main() -> None:
                 ),
                 CallbackQueryHandler(
                     back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
-                ),
-                CallbackQueryHandler(
-                    send_media_to_chat, pattern="^" + str(SEND_MEDIA_TO_CHAT_STATE) + "$"
                 ),
                 CallbackQueryHandler(
                     get_total_users, pattern="^" + str(TOTAL_USERS_STATE) + "$"
