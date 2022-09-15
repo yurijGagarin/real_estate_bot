@@ -11,7 +11,7 @@ from bot.navigation.constants import (
     ADMIN_MENU_STATE,
     CANCEL_SUBSCRIPTION_STATE,
     MAIN_MENU_STATE,
-    SEND_MSGS_STATE,
+    SEND_MSGS_STATE, SEND_MEDIA_TO_CHAT_STATE,
 )
 
 # Buttons patterns
@@ -30,6 +30,7 @@ ADMIN_BUTTONS = {
     "За минулу годину": RECENT_HOUR_USERS_STATE,
     "Всього з підпискою": TOTAL_SUBSCRIBED_USERS_STATE,
     "Оновити базу": REFRESH_DB_STATE,
+    "Надіслати відео": SEND_MEDIA_TO_CHAT_STATE,
 }
 # Buttons Texts
 HOME_MENU_BTN_TEXT = "🏠️"

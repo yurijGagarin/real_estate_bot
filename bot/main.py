@@ -18,6 +18,7 @@ from telegram.ext import (
 )
 
 from bot import config
+from bot.config import STATIC_FILES_CHAT, WELCOME_VIDEO
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -27,15 +28,14 @@ from bot.context.filters import (
     AdditionalFilter,
 )
 from bot.context.manager import Manager
-from bot.context.message_forwarder import MessageForwarder
+from bot.context.message_forwarder import MessageForwarder, forward_static_content
 from bot.context.state import State
 from bot.data_manager import DataManager
 from bot.db import (
-    get_user,
     save_user,
     get_users_with_subscription,
     get_all_users,
-    get_recent_users,
+    get_recent_users, get_user,
 )
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
@@ -59,10 +59,8 @@ from bot.navigation.constants import (
     RECENT_HOUR_USERS_STATE,
     TOTAL_SUBSCRIBED_USERS_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE,
-    SEND_MSGS_STATE,
+    MAIN_MENU_STATE, SEND_MEDIA_TO_CHAT_STATE,
 )
-from bot.notifications import send_message_to_users
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN, traces_sample_rate=1.0)
@@ -77,7 +75,32 @@ async def sync_data(forwarder: MessageForwarder):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
+    user = await get_user(update.effective_user.id)
+    if not user:
+        await context.bot.send_message(chat_id=update.effective_user.id,
+                                       text='Вітаємо вас в боті нерухомості.\n'
+                                            'Якщо є якісь питання стосовно користування ботом,'
+                                            ' можете подивитися відеоінструкцію.\n'
+                                            'Відеоінструкція завжди доступна за командою /help ')
 
+        await forward_static_content(
+            chat_id=update.effective_user.id,
+            from_chat_id=STATIC_FILES_CHAT,
+            message_id=WELCOME_VIDEO,
+            context=context
+        )
+    await show_main_menu(update, context)
+
+    return START_STAGE
+
+
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    await forward_static_content(
+        chat_id=update.effective_user.id,
+        from_chat_id=STATIC_FILES_CHAT,
+        message_id=WELCOME_VIDEO,
+        context=context
+    )
     await show_main_menu(update, context)
 
     return START_STAGE
@@ -93,9 +116,9 @@ async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> st
 
 
 async def cancel_subscription(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> str:
-    user = await get_user(update)
+    user = await get_user(update.effective_user.id)
     user.subscription = None
     user.subscription_text = None
     await save_user(user)
@@ -125,7 +148,7 @@ async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 
 async def get_recent_hour_users(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> str:
     current_time = datetime.datetime.utcnow()
     last_hour = current_time - datetime.timedelta(hours=1)
@@ -137,11 +160,24 @@ async def get_recent_hour_users(
 
 
 async def get_total_users_with_subscription(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+        update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> str:
     users = await get_users_with_subscription()
     total_users = len(users)
     text = f"Всього користувачів з підпискою: {total_users}"
+    await show_admin_menu(update, context, text)
+    return ADMIN_MENU_STAGE
+
+
+async def send_media_to_chat(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> str:
+    text = "Відео надіслано"
+    await context.bot.sendVideo(chat_id=STATIC_FILES_CHAT,
+                                video=open('./static/City_Estate_rent_bot_video_guide.mp4', 'rb'),
+                                supports_streaming=True,
+                                width=920,
+                                height=1980)
     await show_admin_menu(update, context, text)
     return ADMIN_MENU_STAGE
 
@@ -177,7 +213,7 @@ async def get_total_users_with_subscription(
 # TODO Typing here
 def create_refresh_handler(forwarder: MessageForwarder):
     async def refresh_handler(
-        update: Update, context: ContextTypes.DEFAULT_TYPE
+            update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> str:
         logger.info("success sync")
         await sync_data(forwarder=forwarder)
@@ -189,10 +225,10 @@ def create_refresh_handler(forwarder: MessageForwarder):
 
 
 def create_filter_handler(
-    model: Type[Ad],
-    filters: List[Type[BaseFilter]],
-    stage: str,
-    forwarder: MessageForwarder,
+        model: Type[Ad],
+        filters: List[Type[BaseFilter]],
+        stage: str,
+        forwarder: MessageForwarder,
 ):
     async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         m = Manager(
@@ -295,6 +331,9 @@ def main() -> None:
                     back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
                 ),
                 CallbackQueryHandler(
+                    send_media_to_chat, pattern="^" + str(SEND_MEDIA_TO_CHAT_STATE) + "$"
+                ),
+                CallbackQueryHandler(
                     get_total_users, pattern="^" + str(TOTAL_USERS_STATE) + "$"
                 ),
                 CallbackQueryHandler(
@@ -335,7 +374,9 @@ def main() -> None:
                 ),
             ],
         },
-        fallbacks=[CommandHandler("start", start)],
+        fallbacks=[CommandHandler("start", start),
+                   CommandHandler("help", help)
+                   ],
     )
 
     application.add_handler(conv_handler)

@@ -14,10 +14,10 @@ from bot.context.payload import Payload
 from bot.context.state import State
 from bot.db import (
     get_result,
-    get_user,
+    get_user_or_create_new,
     save_user,
     delete_model_by_link,
-    get_model_by_link,
+    get_model_by_link, get_user,
 )
 from bot.exceptions import MessageNotFound
 from bot.models import Ad
@@ -211,7 +211,7 @@ class Manager:
                 await delete_model_by_link(self.model, e.message_link)
 
     async def _show_result(self):
-        await get_user(self.update)
+        await get_user(self.update.effective_user.id)
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q, self.model)
         all_items_result_len = len(all_items_result)
@@ -253,7 +253,7 @@ class Manager:
         self.state.update_context(self.context)
 
     async def create_subscription(self):
-        user = await get_user(self.update)
+        user = await get_user(self.update.effective_user.id)
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized

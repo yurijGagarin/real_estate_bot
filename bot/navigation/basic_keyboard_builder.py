@@ -4,7 +4,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from bot.context.state import State
-from bot.db import get_user
+from bot.db import get_user_or_create_new, get_user
 from bot.navigation.buttons_constants import (
     START_BUTTONS,
     ADMIN_MENU_BTN,
@@ -17,7 +17,7 @@ from bot.navigation.constants import WELCOME_TEXT, SUBSCRIPTION_TEXT
 
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = await get_user(update)
+    user = await get_user_or_create_new(update)
     state = State()
     state.update_context(context)
     keyboard = await build_basic_keyboard(START_BUTTONS)
@@ -34,7 +34,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def show_subscription_menu(update: Update):
-    user = await get_user(update)
+    user = await get_user(update.effective_user.id)
     keyboard = await build_basic_keyboard(SUBSCRIPTION_BUTTONS)
     text = user.subscription_text or SUBSCRIPTION_TEXT
     if user.subscription:
@@ -51,7 +51,7 @@ async def show_subscription_menu(update: Update):
 async def show_admin_menu(
     update: Update, context: ContextTypes.DEFAULT_TYPE, text_outer: str = None
 ):
-    user = await get_user(update)
+    user = await get_user(update.effective_user.id)
     keyboard = await build_basic_keyboard(ADMIN_BUTTONS, items_in_row=1)
     keyboard.append([MAIN_MENU_BTN])
     reply_markup = InlineKeyboardMarkup(keyboard)
