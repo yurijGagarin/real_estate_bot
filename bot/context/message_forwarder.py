@@ -1,12 +1,11 @@
 import logging
-from typing import List, Type
+from typing import List
 
-import bot.models
 import pyrogram.errors.exceptions.all
-import telegram
 from pyrogram import Client
+from telegram.ext import ContextTypes
 
-from bot.db import get_admin_users, save_user, async_session
+from bot.db import get_admin_users, save_user, get_user
 from bot.exceptions import MessageNotFound
 
 logger = logging.getLogger(__name__)
@@ -49,8 +48,7 @@ class MessageForwarder:
 
     async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
         logger.info("Forward messages %s to user %s", message_links, user_id)
-        async with async_session() as session:
-            user = await session.get(bot.models.User, user_id)
+        user = await get_user(user_id)
 
         for message_link in message_links:
             try:
@@ -72,3 +70,14 @@ class MessageForwarder:
                 for admin in admin_users:
                     await self.app.send_message(chat_id=admin.id, text=error_text)
                 break
+
+
+async def forward_static_content(chat_id: int,
+                                 from_chat_id: int,
+                                 message_id: int,
+                                 context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.forwardMessage(
+        chat_id=chat_id,
+        from_chat_id=from_chat_id,
+        message_id=message_id,
+    )

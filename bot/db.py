@@ -97,9 +97,16 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         return [v[0] for v in value]
 
 
-async def get_user(update: Update):
+async def get_user(user_id: int):
     async with async_session() as session:
-        user = await session.get(bot.models.User, update.effective_user.id)
+        user = await session.get(bot.models.User, user_id)
+
+    return user
+
+
+async def get_user_or_create_new(update: Update):
+    async with async_session() as session:
+        user = await get_user(update.effective_user.id)
         if not user:
             user = bot.models.User(
                 id=update.effective_user.id,
@@ -113,14 +120,6 @@ async def get_user(update: Update):
             session.add(user)
             await session.commit()
     return user
-
-
-async def delete_users(users_id: List[int]):
-    async with async_session() as session:
-        for user_id in users_id:
-            user = await session.get(bot.models.User, user_id)
-            session.delete(user)
-        await session.commit()
 
 
 async def save_user(user: bot.models.User):

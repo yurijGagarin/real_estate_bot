@@ -14,7 +14,6 @@ from bot.db import (
     get_admin_users,
     migrate_data as migrate_data_internal,
 )
-from bot.notifications import send_message_to_users
 
 
 @click.group()
