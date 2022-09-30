@@ -11,9 +11,35 @@ from bot.navigation.buttons_constants import (
     SUBSCRIPTION_BUTTONS,
     CANCEL_SUBSCRIPTION_BTN,
     MAIN_MENU_BTN,
-    ADMIN_BUTTONS,
+    ADMIN_BUTTONS, RENT_BUTTONS, ADS_BUTTONS,
 )
 from bot.navigation.constants import WELCOME_TEXT, SUBSCRIPTION_TEXT
+
+
+async def show_rent_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = await build_basic_keyboard(RENT_BUTTONS)
+
+    # TODO: remove code duplication
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.message:
+        await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
+    elif update:
+        await update.callback_query.edit_message_text(
+            text=WELCOME_TEXT, reply_markup=reply_markup
+        )
+
+
+async def show_ads_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = await build_basic_keyboard(ADS_BUTTONS)
+
+    # TODO: remove code duplication
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    if update.message:
+        await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
+    elif update:
+        await update.callback_query.edit_message_text(
+            text=WELCOME_TEXT, reply_markup=reply_markup
+        )
 
 
 async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -24,6 +50,7 @@ async def show_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user.is_admin:
         keyboard.append([ADMIN_MENU_BTN])
 
+    # TODO: remove code duplication
     reply_markup = InlineKeyboardMarkup(keyboard)
     if update.message:
         await update.message.reply_text(WELCOME_TEXT, reply_markup=reply_markup)
@@ -49,10 +76,10 @@ async def show_subscription_menu(update: Update):
 
 
 async def show_admin_menu(
-    update: Update, context: ContextTypes.DEFAULT_TYPE, text_outer: str = None
+        update: Update, context: ContextTypes.DEFAULT_TYPE, text_outer: str = None
 ):
     user = await get_user(update.effective_user.id)
-    keyboard = await build_basic_keyboard(ADMIN_BUTTONS, items_in_row=1)
+    keyboard = await build_basic_keyboard(ADMIN_BUTTONS)
     keyboard.append([MAIN_MENU_BTN])
     reply_markup = InlineKeyboardMarkup(keyboard)
     base_text = f"Вітаємо {user.nickname}, що адмінимо сьогодні?"
@@ -65,7 +92,7 @@ async def show_admin_menu(
     )
 
 
-async def build_basic_keyboard(btns_pattern: Dict, items_in_row: int = 2):
+async def build_basic_keyboard(btns_pattern: Dict):
     keyboard = []
     row = []
     for k, v in btns_pattern.items():

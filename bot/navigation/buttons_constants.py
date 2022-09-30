@@ -10,14 +10,24 @@ from bot.navigation.constants import (
     REFRESH_DB_STATE,
     ADMIN_MENU_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE,
+    MAIN_MENU_STATE, RENT_STATE, ADS_STATE, ADS_APS_STATE,
 )
 
 # Buttons patterns
 START_BUTTONS = {
+    "Пошук оголошень": RENT_STATE,
+    "Подача оголошень": ADS_STATE,
+}
+RENT_BUTTONS = {
     "Оренда Квартир 🏢": APARTMENTS_STATE,
     "Оренда Будинків 🏡": HOUSES_STATE,
     "Повідомлення про нові оголошення 📩": SUBSCRIPTION_STATE,
+    "Back": MAIN_MENU_STATE,
+}
+ADS_BUTTONS = {
+    "Здати квартиру 🏢": ADS_APS_STATE,
+    # "Здати будтинок 🏢": ADS_HOUSES_STATE,
+    "Back": MAIN_MENU_STATE,
 }
 SUBSCRIPTION_BUTTONS = {
     "Квартири 🏢": APARTMENTS_STATE,

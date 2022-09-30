@@ -18,6 +18,8 @@ from telegram.ext import (
 )
 
 from bot import config
+from bot.ads.handlers import ads_dialog_handler
+from bot.ads.navigation.constants import ADS_DIALOG_STAGE
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -41,7 +43,7 @@ from bot.models import Apartments, Houses, Ad
 from bot.navigation.basic_keyboard_builder import (
     show_subscription_menu,
     show_main_menu,
-    show_admin_menu,
+    show_admin_menu, show_rent_menu, show_ads_menu,
 )
 from bot.navigation.constants import (
     SUBSCRIPTION_STAGE,
@@ -58,7 +60,7 @@ from bot.navigation.constants import (
     RECENT_HOUR_USERS_STATE,
     TOTAL_SUBSCRIBED_USERS_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE, )
+    MAIN_MENU_STATE, RENT_STAGE, RENT_STATE, ADS_STATE, ADS_STAGE, ADS_APS_STATE, )
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN, traces_sample_rate=1.0)
@@ -90,6 +92,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     await show_main_menu(update, context)
 
     return START_STAGE
+
+
+async def rent_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    await show_rent_menu(update, context)
+
+    return RENT_STAGE
+
+async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    await show_ads_menu(update, context)
+
+    return ADS_STAGE
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -267,6 +280,14 @@ def main() -> None:
         states={
             START_STAGE: [
                 CallbackQueryHandler(
+                    rent_handler, pattern="^" + str(RENT_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    ads_handler, pattern="^" + str(ADS_STATE) + "$"
+                ),
+            ],
+            RENT_STAGE: [
+                CallbackQueryHandler(
                     apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"
                 ),
                 CallbackQueryHandler(
@@ -278,7 +299,34 @@ def main() -> None:
                 CallbackQueryHandler(
                     subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$"
                 ),
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
             ],
+            ADS_STAGE: [
+                CallbackQueryHandler(
+                    ads_dialog_handler, pattern="^" + str(ADS_APS_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
+            ],
+            ADS_DIALOG_STAGE: {
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    ads_dialog_handler, pattern="^" + str(ADS_APS_STATE) + "$"),
+                MessageHandler(
+                    filters.TEXT,
+                    ads_dialog_handler,
+                ),
+                CallbackQueryHandler(ads_dialog_handler),
+                MessageHandler(filters.USER_ATTACHMENT, ads_dialog_handler),
+                MessageHandler(filters.Document.IMAGE, ads_dialog_handler),
+                MessageHandler(filters.PHOTO, ads_dialog_handler),
+                MessageHandler(filters.CONTACT, ads_dialog_handler),
+            },
             ADMIN_MENU_STAGE: [
                 CallbackQueryHandler(
                     create_refresh_handler(forwarder=forwarder),

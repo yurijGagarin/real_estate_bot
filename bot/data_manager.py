@@ -1,5 +1,5 @@
 import bot
-from bot.api.google import GoogleApi
+from bot.api.google_old import GoogleApi
 from bot.context.message_forwarder import MessageForwarder
 from bot.db import (
     sync_objects_to_db,
