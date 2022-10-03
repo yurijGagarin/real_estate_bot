@@ -18,6 +18,8 @@ from telegram.ext import (
 )
 
 from bot import config
+from bot.ads.handlers import ads_dialog_handler
+from bot.ads.navigation.constants import ADS_DIALOG_STAGE
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -27,7 +29,7 @@ from bot.context.filters import (
     AdditionalFilter,
 )
 from bot.context.manager import Manager
-from bot.context.message_forwarder import MessageForwarder, forward_static_content
+from bot.context.message_forwarder import MessageForwarder
 from bot.context.state import State
 from bot.data_manager import DataManager
 from bot.db import (
@@ -39,10 +41,10 @@ from bot.db import (
 from bot.log import logging
 from bot.models import Apartments, Houses, Ad
 from bot.navigation.basic_keyboard_builder import (
-    show_subscription_menu,
-    show_main_menu,
-    show_admin_menu,
+    show_menu,
 )
+from bot.navigation.buttons_constants import SUBSCRIPTION_BUTTONS, START_BUTTONS, ADMIN_BUTTONS, RENT_BUTTONS, \
+    ADS_BUTTONS
 from bot.navigation.constants import (
     SUBSCRIPTION_STAGE,
     START_STAGE,
@@ -58,7 +60,8 @@ from bot.navigation.constants import (
     RECENT_HOUR_USERS_STATE,
     TOTAL_SUBSCRIBED_USERS_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE, )
+    MAIN_MENU_STATE, RENT_STAGE, RENT_STATE, ADS_STATE, ADS_STAGE, ADS_APS_STATE, SUBSCRIPTION_TEXT, MAIN_MENU_TEXT,
+    RENT_MENU_TEXT, ADS_MENU_TEXT, )
 
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN, traces_sample_rate=1.0)
@@ -73,42 +76,81 @@ async def sync_data(forwarder: MessageForwarder):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    user = await get_user(update.effective_user.id)
-    if not user:
-        await context.bot.send_message(chat_id=update.effective_user.id,
-                                       text='Вітаємо вас в боті нерухомості.\n'
-                                            'Якщо є якісь питання стосовно користування ботом,'
-                                            ' можете подивитися відеоінструкцію.\n'
-                                            'Відеоінструкція завжди доступна за командою /help ')
-
-        await forward_static_content(
-            chat_id=update.effective_user.id,
-            from_chat_id=config.STATIC_FROM_CHAT_ID,
-            message_id=config.WELCOME_VIDEO,
-            context=context
-        )
-    await show_main_menu(update, context)
-
-    return START_STAGE
-
-
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    await forward_static_content(
-        chat_id=update.effective_user.id,
-        from_chat_id=config.STATIC_FROM_CHAT_ID,
-        message_id=config.WELCOME_VIDEO,
-        context=context
-    )
-    await show_main_menu(update, context)
+    # todo: uncomment when help is needed
+    # user = await get_user(update.effective_user.id)
+    # if not user:
+    #     await context.bot.send_message(chat_id=update.effective_user.id,
+    #                                    text='Вітаємо вас в боті нерухомості.\n'
+    #                                         'Якщо є якісь питання стосовно користування ботом,'
+    #                                         ' можете подивитися відеоінструкцію.\n'
+    #                                         'Відеоінструкція завжди доступна за командою /help ')
+    #
+    #     await forward_static_content(
+    #         chat_id=update.effective_user.id,
+    #         from_chat_id=config.STATIC_FROM_CHAT_ID,
+    #         message_id=config.WELCOME_VIDEO,
+    #         context=context
+    #     )
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=START_BUTTONS,
+                    text=MAIN_MENU_TEXT,
+                    items_in_a_row=1,
+                    main_menu=True)
 
     return START_STAGE
+
+
+async def rent_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    state = State.from_context(context)
+    state.is_subscription = False
+    state.update_context(context)
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=RENT_BUTTONS,
+                    text=RENT_MENU_TEXT,
+                    )
+
+    return RENT_STAGE
+
+
+async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=ADS_BUTTONS,
+                    text=ADS_MENU_TEXT,
+                    )
+
+    return ADS_STAGE
+
+
+# todo: uncomment when help is needed
+# async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+#     await forward_static_content(
+#         chat_id=update.effective_user.id,
+#         from_chat_id=config.STATIC_FROM_CHAT_ID,
+#         message_id=config.WELCOME_VIDEO,
+#         context=context
+#     )
+#     await show_menu(update=update,
+#                     context=context,
+#                     buttons_pattern=START_BUTTONS,
+#                     text=MAIN_MENU_TEXT,
+#                     items_in_a_row=1,
+#                     main_menu=True)
+#
+#     return START_STAGE
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     state = State.from_context(context)
     state.is_subscription = True
     state.update_context(context)
-    await show_subscription_menu(update)
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=SUBSCRIPTION_BUTTONS,
+                    text=SUBSCRIPTION_TEXT,
+                    subscription_menu=True)
 
     return SUBSCRIPTION_STAGE
 
@@ -120,19 +162,31 @@ async def cancel_subscription(
     user.subscription = None
     user.subscription_text = None
     await save_user(user)
-    await show_subscription_menu(update)
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=SUBSCRIPTION_BUTTONS,
+                    text=SUBSCRIPTION_TEXT,
+                    subscription_menu=True)
 
     return SUBSCRIPTION_STAGE
 
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    await show_main_menu(update, context)
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=START_BUTTONS,
+                    text=MAIN_MENU_TEXT,
+                    items_in_a_row=1,
+                    main_menu=True)
 
     return START_STAGE
 
 
 async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    await show_admin_menu(update, context)
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=ADMIN_BUTTONS,
+                    admin_menu=True)
 
     return ADMIN_MENU_STAGE
 
@@ -141,7 +195,11 @@ async def get_total_users(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     users = await get_all_users()
     total_users = len(users)
     text = f"Всього користувачів: {total_users}"
-    await show_admin_menu(update, context, text)
+    await show_menu(update=update,
+                    context=context,
+                    text=text,
+                    buttons_pattern=ADMIN_BUTTONS,
+                    admin_menu=True)
     return ADMIN_MENU_STAGE
 
 
@@ -153,7 +211,11 @@ async def get_recent_hour_users(
     users = await get_recent_users(last_hour)
     total_users = len(users)
     text = f"Користувачів за останню годину: {total_users}"
-    await show_admin_menu(update, context, text)
+    await show_menu(update=update,
+                    context=context,
+                    text=text,
+                    buttons_pattern=ADMIN_BUTTONS,
+                    admin_menu=True)
     return ADMIN_MENU_STAGE
 
 
@@ -163,7 +225,11 @@ async def get_total_users_with_subscription(
     users = await get_users_with_subscription()
     total_users = len(users)
     text = f"Всього користувачів з підпискою: {total_users}"
-    await show_admin_menu(update, context, text)
+    await show_menu(update=update,
+                    context=context,
+                    text=text,
+                    buttons_pattern=ADMIN_BUTTONS,
+                    admin_menu=True)
     return ADMIN_MENU_STAGE
 
 
@@ -175,7 +241,11 @@ def create_refresh_handler(forwarder: MessageForwarder):
         logger.info("success sync")
         await sync_data(forwarder=forwarder)
         text = "База даних оновлена.\nГарного вам дня 😊"
-        await show_admin_menu(update, context, text_outer=text)
+        await show_menu(update=update,
+                        context=context,
+                        text=text,
+                        buttons_pattern=ADMIN_BUTTONS,
+                        admin_menu=True)
         return ADMIN_MENU_STAGE
 
     return refresh_handler
@@ -197,17 +267,30 @@ def create_filter_handler(
         )
 
         is_subscription = m.state.is_subscription
-        continue_flow = await m.process_action()
+        continue_flow, show_menu_args = await m.process_action()
 
         if continue_flow:
             return stage
+        else:
+            await m.reset_state()
+
+        if show_menu_args is None:
+            show_menu_args = {
+                "update": update,
+                "context": context,
+                "buttons_pattern": RENT_BUTTONS,
+                "text": RENT_MENU_TEXT,
+            }
+            if is_subscription:
+                show_menu_args["buttons_pattern"] = SUBSCRIPTION_BUTTONS
+                show_menu_args["text"] = SUBSCRIPTION_TEXT
+                show_menu_args["subscription_menu"] = True
+        await show_menu(**show_menu_args)
 
         if is_subscription:
-            await show_subscription_menu(update)
             return SUBSCRIPTION_STAGE
 
-        await show_main_menu(update, context)
-        return START_STAGE
+        return RENT_STAGE
 
     return handler
 
@@ -267,18 +350,55 @@ def main() -> None:
         states={
             START_STAGE: [
                 CallbackQueryHandler(
+                    rent_handler, pattern="^" + str(RENT_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    ads_handler, pattern="^" + str(ADS_STATE) + "$"
+                ),
+                # todo fix it перенести админ6 меню где оно надо
+                CallbackQueryHandler(
+                    admin_menu, pattern="^" + str(ADMIN_MENU_STATE) + "$"
+                ),
+            ],
+            RENT_STAGE: [
+                CallbackQueryHandler(
                     apartments_handler, pattern="^" + str(APARTMENTS_STATE) + "$"
                 ),
                 CallbackQueryHandler(
                     houses_handler, pattern="^" + str(HOUSES_STATE) + "$"
                 ),
-                CallbackQueryHandler(
-                    admin_menu, pattern="^" + str(ADMIN_MENU_STATE) + "$"
-                ),
+
                 CallbackQueryHandler(
                     subscription, pattern="^" + str(SUBSCRIPTION_STATE) + "$"
                 ),
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
             ],
+            ADS_STAGE: [
+                CallbackQueryHandler(
+                    ads_dialog_handler, pattern="^" + str(ADS_APS_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
+            ],
+            ADS_DIALOG_STAGE: {
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    ads_dialog_handler, pattern="^" + str(ADS_APS_STATE) + "$"),
+                MessageHandler(
+                    filters.TEXT,
+                    ads_dialog_handler,
+                ),
+                CallbackQueryHandler(ads_dialog_handler),
+                MessageHandler(filters.USER_ATTACHMENT, ads_dialog_handler),
+                MessageHandler(filters.Document.IMAGE, ads_dialog_handler),
+                MessageHandler(filters.PHOTO, ads_dialog_handler),
+                MessageHandler(filters.CONTACT, ads_dialog_handler),
+            },
             ADMIN_MENU_STAGE: [
                 CallbackQueryHandler(
                     create_refresh_handler(forwarder=forwarder),
@@ -324,12 +444,13 @@ def main() -> None:
                     pattern="^" + str(CANCEL_SUBSCRIPTION_STATE) + "$",
                 ),
                 CallbackQueryHandler(
-                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                    rent_handler, pattern="^" + str(MAIN_MENU_STATE) + "$"
                 ),
             ],
         },
         fallbacks=[CommandHandler("start", start),
-                   CommandHandler("help", help)
+                   # todo: uncomment when help is needed
+                   # CommandHandler("help", help)
                    ],
     )
 

@@ -5,7 +5,7 @@ from pprint import pprint
 import click
 
 import bot.models
-from bot.api.google import GoogleApi
+from bot.api.google_old import GoogleApi
 from bot.data_manager import DataManager
 from bot.db import (
     async_session,

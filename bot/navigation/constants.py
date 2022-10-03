@@ -3,12 +3,18 @@ START_STAGE = "START_STAGE"
 APARTMENTS_STAGE = "APARTMENTS_STAGE"
 HOUSES_STAGE = "HOUSES_STAGE"
 SUBSCRIPTION_STAGE = "SUBSCRIPTION_STAGE"
+RENT_STAGE = "RENT_STAGE"
+ADS_STAGE = "ADS_STAGE"
 ADMIN_MENU_STAGE = "ADMIN_STAGE"
 END_STAGE = "END_STAGE"
 
 # Handlers CallbackData States
+RENT_STATE = "RENT_STATE"
+ADS_STATE = "ADS_STATE"
+
 APARTMENTS_STATE = "APARTMENTS_STATE"
 HOUSES_STATE = "HOUSES_STATE"
+
 SUBSCRIPTION_STATE = "SUBSCRIPTION_STATE"
 TOTAL_USERS_STATE = "TOTAL_USERS_STATE"
 RECENT_HOUR_USERS_STATE = "RECENT_HOUR_USERS_STATE"
@@ -20,9 +26,14 @@ MAIN_MENU_STATE = "MAIN_MENU_STATE"
 SEND_MSGS_STATE = "SEND_MSGS_STATE"
 SEND_MEDIA_TO_CHAT_STATE = "SEND_MEDIA_TO_CHAT_STATE"
 
+# ADS
+ADS_APS_STATE = "ADS_APS_STATE"
+
 # Message Texts
 LOAD_MORE_LINKS_TEXT = "Схоже тут є ще варіанти для тебе ❗️"
-WELCOME_TEXT = "Вітаємо вас в боті нерухомості. Оберіть бажану послугу."
+MAIN_MENU_TEXT = "Вітаємо Вас в боті агенства нерухомості Lviv City Estate. Оберіть бажану послугу."
+RENT_MENU_TEXT = "Оберіть який тип нерухомості ви шукаєте."
+ADS_MENU_TEXT = "Тут Ви можете здати свою нерухомість."
 SUBSCRIPTION_TEXT = (
     "Це меню для налаштування отримання нових повідомлень, "
     "коли зʼявляються обʼекти по вашим критеріям пошуку."
@@ -37,7 +48,6 @@ THATS_ALL_FOLKS_TEXT = (
     "Схоже що це всі оголошення на сьогодні,\n"
     "Підпишись на розсилку щоб першим знати про нові оголошення"
 )
-
 
 # Other Constants
 SHOW_ITEMS_PER_PAGE = 3
