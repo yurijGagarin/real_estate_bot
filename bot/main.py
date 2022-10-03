@@ -210,10 +210,25 @@ def create_filter_handler(
         )
 
         is_subscription = m.state.is_subscription
-        continue_flow = await m.process_action()
+        continue_flow, show_menu_args = await m.process_action()
 
         if continue_flow:
             return stage
+        else:
+            await m.reset_state()
+
+        if show_menu_args is None:
+            show_menu_args = {
+                "update": update,
+                "context": context,
+                "buttons_pattern": RENT_BUTTONS,
+                "text": RENT_MENU_TEXT,
+            }
+            if is_subscription:
+                show_menu_args["buttons_pattern"] = SUBSCRIPTION_BUTTONS
+                show_menu_args["text"] = SUBSCRIPTION_TEXT
+                show_menu_args["subscription_menu"] = True
+        await show_menu(**show_menu_args)
 
         if is_subscription:
             await show_subscription_menu(update)

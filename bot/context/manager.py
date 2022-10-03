@@ -115,13 +115,12 @@ class Manager:
             await show_subscription_menu(self.update)
             return False
         else:
-            self.state.filters[
-                self.state.filter_index
-            ] = await self.active_filter.process_action(payload, self.update)
+            result = await self.active_filter.process_action(payload, self.update)
+            self.state.filters[self.state.filter_index] = result
 
         await self.edit_message()
         self.save_state()
-        return True
+        return True, None
 
     async def reset_state(self):
         self.state.result_sliced_view = None
@@ -235,11 +234,19 @@ class Manager:
 
         if empty_result:
             text = EMPTY_RESULT_TEXT
+        if just_subscribed:
+            text += f'\nВи підписалися на оновлення за цими критеріями ✅'
+            return await self.update.callback_query.edit_message_text(
+                text=text, reply_markup=reply_markup
+            )
+        if empty_result:
+            text = EMPTY_RESULT_TEXT
             return await self.update.callback_query.edit_message_text(
                 text=text, reply_markup=reply_markup
             )
         if last_page:
             text = THATS_ALL_FOLKS_TEXT
+
         await self.forwarder.forward_estates_to_user(
             user_id=self.update.effective_user.id, message_links=items_result
         )
@@ -252,22 +259,27 @@ class Manager:
     def save_state(self):
         self.state.update_context(self.context)
 
+    async def build_subscription_text(self):
+        text = ["Ви будете проінформовані про нові оголошення за такими критеріями:\n"]
+        for i in range(self.state.filter_index + 1):
+            f = self.filters[i]
+            text.append(await f.build_text(is_final=True, is_active=False))
+        return "\n".join(text)
+
     async def create_subscription(self):
         user = await get_user(self.update.effective_user.id)
         query = await self.active_filter.build_query()
         serialized = dumps(query)
         user.subscription = serialized
-        text = ["Ви будете проінформовані про нові оголошення за такими критеріями:\n"]
-        for i in range(self.state.filter_index + 1):
-            f = self.filters[i]
-            text.append(await f.build_text(is_final=True, is_active=False))
-        user.subscription_text = "\n".join(text)
+        user.subscription_text = await self.build_subscription_text()
         user.last_viewed_at = datetime.datetime.utcnow()
         await save_user(user)
-        await self.reset_state()
 
     async def notify_admins_about_bad_link(self, message_link: str):
         model = await get_model_by_link(self.model, message_link)
         text = f"Something wrong with: {model.get_full_name()}"
 
         await notify_admins(self.context.bot, text)
+
+    def show_subscription_created(self):
+        pass
