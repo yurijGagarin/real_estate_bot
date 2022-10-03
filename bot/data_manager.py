@@ -1,5 +1,7 @@
+import asyncio
+
 import bot
-from bot.api.google_old import GoogleApi
+from bot.api.google import GoogleApi
 from bot.context.message_forwarder import MessageForwarder
 from bot.db import (
     sync_objects_to_db,
@@ -199,3 +201,4 @@ class DataManager:
             result = await get_user_subscription(user)
             if len(result) > 0:
                 await forwarder.forward_estates_to_user(user.id, result)
+                await asyncio.sleep(5)

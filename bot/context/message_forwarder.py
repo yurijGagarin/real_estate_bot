@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List
 
@@ -53,6 +54,7 @@ class MessageForwarder:
         for message_link in message_links:
             try:
                 await self.forward_message(message_link=message_link, chat_id=user.id)
+                await asyncio.sleep(1)
             except pyrogram.errors.exceptions.MessageIdInvalid:
                 raise MessageNotFound(message_link=message_link)
             except pyrogram.errors.exceptions.bad_request_400.UserIsBlocked:

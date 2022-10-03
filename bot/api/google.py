@@ -9,11 +9,11 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 from loguru import logger
-from bot.ads.config import SPREADSHEET_ID, SHEET_NAME, SHEET_ID
 
 from bot import config
 
 # If modifying these scopes, delete the file token.json.
+from bot.config import ADS_SHEET_NAME, ADS_SPREADSHEET_ID, ADS_SHEET_ID
 
 SCOPES = ["https://www.googleapis.com/auth/drive",
           "https://www.googleapis.com/auth/spreadsheets",
@@ -135,7 +135,7 @@ class GoogleApi:
                     {
                         'insertDimension': {
                             'range': {
-                                "sheetId": SHEET_ID,
+                                "sheetId": ADS_SHEET_ID,
                                 "dimension": "ROWS",
                                 "startIndex": 1,
                                 "endIndex": 2
@@ -144,7 +144,7 @@ class GoogleApi:
                     }
                 ]
             }
-            sheet.batchUpdate(spreadsheetId=SPREADSHEET_ID,
+            sheet.batchUpdate(spreadsheetId=ADS_SPREADSHEET_ID,
                               body=request_body).execute()
         except HttpError as error:
             logger.error(f'An error occurred: {error}')
@@ -158,24 +158,23 @@ class GoogleApi:
                 'values': values
             }
             result = self.sheet_service.spreadsheets().values().update(
-                spreadsheetId=SPREADSHEET_ID, range=f"{SHEET_NAME}!A2:Q2",
+                spreadsheetId=ADS_SPREADSHEET_ID, range=f"{ADS_SHEET_NAME}!A2:Q2",
                 valueInputOption='RAW', body=body).execute()
-            print(f"{result.get('updatedCells')} cells updated.")
             return result
         except HttpError as error:
             print(f"An error occurred: {error}")
             raise error
 
     def get_sheet_data(
-        self,
-        sheet_name,
+            self,
+            sheet_name,
     ):
         range_name = f"{sheet_name}!A1:AD"
         # Call the Sheets API
         sheet = self.sheet_service.spreadsheets()
         result = (
             sheet.values()
-            .get(spreadsheetId=config.SPREADSHEET_ID, range=range_name)
+            .get(spreadsheetId=config.RENT_SPREADSHEET_ID, range=range_name)
             .execute()
         )
         values = result.get("values", [])

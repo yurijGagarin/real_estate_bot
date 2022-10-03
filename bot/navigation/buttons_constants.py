@@ -15,19 +15,17 @@ from bot.navigation.constants import (
 
 # Buttons patterns
 START_BUTTONS = {
-    "Пошук оголошень": RENT_STATE,
-    "Подача оголошень": ADS_STATE,
+    "Шукаю оренду": RENT_STATE,
+    "Хочу здати в оренду": ADS_STATE,
 }
 RENT_BUTTONS = {
     "Оренда Квартир 🏢": APARTMENTS_STATE,
     "Оренда Будинків 🏡": HOUSES_STATE,
     "Повідомлення про нові оголошення 📩": SUBSCRIPTION_STATE,
-    "Back": MAIN_MENU_STATE,
 }
 ADS_BUTTONS = {
     "Здати квартиру 🏢": ADS_APS_STATE,
     # "Здати будтинок 🏢": ADS_HOUSES_STATE,
-    "Back": MAIN_MENU_STATE,
 }
 SUBSCRIPTION_BUTTONS = {
     "Квартири 🏢": APARTMENTS_STATE,
@@ -54,7 +52,7 @@ SKIP_BTN_TEXT = "Пропустити ➡"
 ACTION_NEXT = "n"
 ACTION_BACK = "b"
 MAIN_MENU = "m"
-SUBSCRIPTION_MODE = "sub"
+ACTION_SUBSCRIBE = "sub"
 SHOW_NEXT_PAGE = "else"
 
 # Static Buttons
@@ -68,7 +66,7 @@ HOME_MENU_BTN = InlineKeyboardButton(
 )
 MAIN_MENU_BTN = InlineKeyboardButton(BACK_BTN_TEXT, callback_data=MAIN_MENU_STATE)
 SUBSCRIPTION_BTN = InlineKeyboardButton(
-    SUBSCRIPTION_BTN_TEXT, callback_data='{"%s":1}' % SUBSCRIPTION_MODE
+    SUBSCRIPTION_BTN_TEXT, callback_data='{"%s":1}' % ACTION_SUBSCRIBE
 )
 ADMIN_MENU_BTN = InlineKeyboardButton(
     ADMIN_MENU_BTN_TEXT, callback_data=ADMIN_MENU_STATE

@@ -15,7 +15,8 @@ from bot.ads.navigation.buttons_constants import ACTION_NEXT, MAIN_MENU, ACTION_
 from bot.ads.navigation.constants import NAME_Q_NAME, CONTACT_Q_NAME, STATE_Q_NAME, ZHK_Q_NAME, ROOM_Q_NAME, \
     AREA_Q_NAME, \
     FLOOR_Q_NAME, PRICE_Q_NAME, ADDITIONAL_Q_NAME
-from bot.ads.notifications import notify_admins
+from bot.api.google import GoogleApi
+from bot.notifications import notify_admins
 
 
 class Manager:

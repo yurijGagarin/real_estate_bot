@@ -1,7 +1,7 @@
 import datetime
 import json
 from json import JSONDecodeError
-from typing import Type, List
+from typing import Type, List, Tuple, Optional
 
 from sqlalchemy.ext.serializer import dumps
 from sqlalchemy.sql import Select
@@ -14,31 +14,27 @@ from bot.context.payload import Payload
 from bot.context.state import State
 from bot.db import (
     get_result,
-    get_user_or_create_new,
     save_user,
     delete_model_by_link,
     get_model_by_link, get_user,
 )
 from bot.exceptions import MessageNotFound
 from bot.models import Ad
-from bot.navigation.basic_keyboard_builder import show_subscription_menu
 from bot.navigation.buttons_constants import (
     ACTION_BACK,
     MAIN_MENU,
-    SUBSCRIPTION_MODE,
+    ACTION_SUBSCRIBE,
     SHOW_NEXT_PAGE,
     NEXT_PAGE_BTN,
     SUBSCRIPTION_BTN,
     ACTION_NEXT,
     get_back_btn,
-    HOME_MENU_BTN,
-)
+    HOME_MENU_BTN, )
 from bot.navigation.constants import (
     SHOW_ITEMS_PER_PAGE,
     EMPTY_RESULT_TEXT,
     THATS_ALL_FOLKS_TEXT,
-    LOAD_MORE_LINKS_TEXT,
-)
+    LOAD_MORE_LINKS_TEXT, )
 from bot.notifications import notify_admins
 
 
@@ -50,12 +46,12 @@ class Manager:
     model: Type[Ad]
 
     def __init__(
-        self,
-        model: Type[Ad],
-        filters: List[Type[BaseFilter]],
-        update: Update,
-        context: ContextTypes.DEFAULT_TYPE,
-        forwarder: MessageForwarder,
+            self,
+            model: Type[Ad],
+            filters: List[Type[BaseFilter]],
+            update: Update,
+            context: ContextTypes.DEFAULT_TYPE,
+            forwarder: MessageForwarder,
     ):
         self.update = update
         self.context = context
@@ -85,7 +81,7 @@ class Manager:
     def is_subscription(self):
         return self.state.is_subscription
 
-    async def process_action(self):
+    async def process_action(self) -> Tuple[bool, Optional[dict]]:
         payload = self.get_payload()
 
         if ACTION_NEXT in payload.callback:
@@ -95,25 +91,32 @@ class Manager:
                 if self.is_subscription:
                     await self.create_subscription()
 
-                    return False
+                    return False, None
                 await self.show_result()
-                return True
+                return True, None
 
         elif ACTION_BACK in payload.callback:
             if self.state.filter_index == 0:
-                return False
+                return False, None
             self.state.filters[self.state.filter_index] = None
             self.move_back()
         elif SHOW_NEXT_PAGE in payload.callback:
             await self.show_result()
-            return True
+            return True, None
         elif MAIN_MENU in payload.callback:
-            await self.reset_state()
-            return False
-        elif SUBSCRIPTION_MODE in payload.callback:
+            return False, None
+        elif ACTION_SUBSCRIBE in payload.callback:
             await self.create_subscription()
-            await show_subscription_menu(self.update)
-            return False
+            await self.show_result(just_subscribed=True)
+            # await self.show_subscription_created()
+            return True, None
+            # return False, {
+            #     "update": self.update,
+            #     "context": self.context,
+            #     "buttons_pattern": SUBSCRIPTION_BUTTONS,
+            #     "text": SUBSCRIPTION_TEXT,
+            #     "subscription_menu": True
+            # }
         else:
             result = await self.active_filter.process_action(payload, self.update)
             self.state.filters[self.state.filter_index] = result
@@ -134,8 +137,8 @@ class Manager:
     def move_back(self):
         last_filter = len(self.state.filters) - 1
         if (
-            self.state.filter_index == last_filter
-            and self.state.result_sliced_view is not None
+                self.state.filter_index == last_filter
+                and self.state.result_sliced_view is not None
         ):
             self.state.result_sliced_view = None
             return
@@ -171,10 +174,10 @@ class Manager:
 
         # Edit message only if it has diff
         if (
-            not self.context.user_data.get("callback_query")
-            or new_text != callback_query.message.text
-            or keyboard.inline_keyboard
-            != callback_query.message.reply_markup.inline_keyboard
+                not self.context.user_data.get("callback_query")
+                or new_text != callback_query.message.text
+                or keyboard.inline_keyboard
+                != callback_query.message.reply_markup.inline_keyboard
         ):
             edit_result = await callback_query.edit_message_text(
                 text=new_text, reply_markup=keyboard, parse_mode="HTML"
@@ -199,17 +202,17 @@ class Manager:
 
         return Payload(message=message, callback=callback)
 
-    async def show_result(self):
+    async def show_result(self, just_subscribed=False):
         while True:
             try:
-                await self._show_result()
+                await self._show_result(just_subscribed)
                 break
             except MessageNotFound as e:
                 print(e.message_link)
                 await self.notify_admins_about_bad_link(e.message_link)
                 await delete_model_by_link(self.model, e.message_link)
 
-    async def _show_result(self):
+    async def _show_result(self, just_subscribed):
         await get_user(self.update.effective_user.id)
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q, self.model)
@@ -219,17 +222,25 @@ class Manager:
         keyboard = []
         page_offset = self.state.result_sliced_view or 0
         items_result = all_items_result[
-            page_offset : (page_offset + SHOW_ITEMS_PER_PAGE)
-        ]
+                       page_offset: (page_offset + SHOW_ITEMS_PER_PAGE)
+                       ]
         last_page = len(items_result) < SHOW_ITEMS_PER_PAGE
+        user = await get_user(self.update.effective_user.id)
+
+        subscription_text = await self.build_subscription_text()
+        is_same_subscription = user.subscription_text == subscription_text
+
         text = ""
         if has_pagination and not last_page:
             page_offset += SHOW_ITEMS_PER_PAGE
             text = LOAD_MORE_LINKS_TEXT
             keyboard.append(NEXT_PAGE_BTN)
+            # if is_same_subscription:
+            #     text += f'\nВи підписалися на оновлення за цими критеріями ✅'
 
         keyboard.append([get_back_btn(), HOME_MENU_BTN])
-        keyboard.append([SUBSCRIPTION_BTN])
+        if not is_same_subscription:
+            keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         if empty_result:
@@ -240,7 +251,8 @@ class Manager:
                 text=text, reply_markup=reply_markup
             )
         if empty_result:
-            text = EMPTY_RESULT_TEXT
+            # if is_same_subscription:
+            #     text += f'\nВи підписалися на оновлення за цими критеріями ✅'
             return await self.update.callback_query.edit_message_text(
                 text=text, reply_markup=reply_markup
             )
@@ -253,6 +265,7 @@ class Manager:
         await self.context.bot.send_message(
             chat_id=self.update.effective_chat.id, text=text, reply_markup=reply_markup
         )
+
         self.state.result_sliced_view = page_offset
         self.save_state()
 

@@ -19,7 +19,7 @@ services:
       DB_URI: '${DB_URI}'
       TOKEN: '${TOKEN}'
       DEBUG: '${DEBUG}'
-      SPREADSHEET_ID: '${SPREADSHEET_ID}'
+      RENT_SPREADSHEET_ID: '${RENT_SPREADSHEET_ID}'
       FROM_CHAT_ID: '${FROM_CHAT_ID}'
       API_HASH: '${API_HASH}'
       API_ID: '${API_ID}'
