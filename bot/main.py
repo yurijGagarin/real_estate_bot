@@ -25,8 +25,7 @@ from bot.context.filters import (
     DistrictFilter,
     ResidentialComplexFilter,
     PriceFilter,
-    BaseFilter,
-    AdditionalFilter,
+    AdditionalFilter, BaseFilter,
 )
 from bot.context.manager import Manager
 from bot.context.message_forwarder import MessageForwarder
@@ -62,9 +61,14 @@ from bot.navigation.constants import (
     CANCEL_SUBSCRIPTION_STATE,
     MAIN_MENU_STATE, RENT_STAGE, RENT_STATE, ADS_STATE, ADS_STAGE, ADS_APS_STATE, SUBSCRIPTION_TEXT, MAIN_MENU_TEXT,
     RENT_MENU_TEXT, ADS_MENU_TEXT, )
+from bot.notifications import notify_admins
 
 logger = logging.getLogger(__name__)
-sentry_sdk.init(dsn=config.SENTRY_DSN, traces_sample_rate=1.0)
+sentry_sdk.init(dsn=config.SENTRY_DSN,
+                traces_sample_rate=1.0,
+                # todo: make  env var
+                # environment='localtest'
+                )
 
 
 async def sync_data(forwarder: MessageForwarder):
@@ -142,6 +146,23 @@ async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
 #     return START_STAGE
 
 
+async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    notify_text = f"Користувач з Telegram ID: <b>{update.effective_user.id}</b>," \
+                  f" Username: <b>@{update.effective_user.username}</b> потребує допомоги."
+    await notify_admins(context.bot, notify_text)
+    help_required_text = "Наш менеджер отримав Ваше прохання про допомогу" \
+                         " та звʼяжется з вами найближчим часом.\n" \
+                         "Ви можете продовжити користування ботом  Lviv City Estate"
+    await show_menu(update=update,
+                    context=context,
+                    buttons_pattern=START_BUTTONS,
+                    text=help_required_text,
+                    items_in_a_row=1,
+                    main_menu=True)
+
+    return START_STAGE
+
+
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     state = State.from_context(context)
     state.is_subscription = True
@@ -169,6 +190,15 @@ async def cancel_subscription(
                     subscription_menu=True)
 
     return SUBSCRIPTION_STAGE
+
+
+# async def subscribe_user(
+#         update: Update, context: ContextTypes.DEFAULT_TYPE
+# ) -> str:
+#
+#     await update.callback_query.edit_message_text(text='Введіть     ')
+#
+#     return SUBSCRIPTION_STAGE
 
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -446,11 +476,14 @@ def main() -> None:
                 CallbackQueryHandler(
                     rent_handler, pattern="^" + str(MAIN_MENU_STATE) + "$"
                 ),
+                # CallbackQueryHandler(
+                #     subscribe_user, pattern="^" + str(SUBSCRIBE_USER_STATE) + "$"
+                # ),
             ],
         },
         fallbacks=[CommandHandler("start", start),
                    # todo: uncomment when help is needed
-                   # CommandHandler("help", help)
+                   CommandHandler("help", help)
                    ],
     )
 

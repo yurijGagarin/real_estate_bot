@@ -20,6 +20,9 @@ services:
       TOKEN: '${TOKEN}'
       DEBUG: '${DEBUG}'
       RENT_SPREADSHEET_ID: '${RENT_SPREADSHEET_ID}'
+      ADS_SHEET_ID: '${ADS_SHEET_ID}'
+      ADS_SPREADSHEET_ID: '${ADS_SPREADSHEET_ID}'
+      ADS_SHEET_NAME: '${ADS_SHEET_NAME}'
       FROM_CHAT_ID: '${FROM_CHAT_ID}'
       API_HASH: '${API_HASH}'
       API_ID: '${API_ID}'
@@ -33,3 +36,5 @@ services:
     logging:
       options:
         max-size: 1m
+    depends_on:
+      - db
