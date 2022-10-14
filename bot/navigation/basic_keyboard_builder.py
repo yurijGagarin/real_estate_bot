@@ -8,8 +8,7 @@ from bot.db import get_user_or_create_new
 from bot.navigation.buttons_constants import (
     ADMIN_MENU_BTN,
     CANCEL_SUBSCRIPTION_BTN,
-    MAIN_MENU_BTN,
-)
+    MAIN_MENU_BTN, )
 
 
 async def show_menu(update: Update,
@@ -34,6 +33,8 @@ async def show_menu(update: Update,
         if user.subscription:
             keyboard.insert(0, [CANCEL_SUBSCRIPTION_BTN])
             text = user.subscription_text
+        # if user.is_admin:
+        #     keyboard.insert(1, [get_regular_btn(text='Підписати користувача', callback=SUBSCRIBE_USER_STATE)])
     elif admin_menu:
         text = text or f"Вітаємо {user.nickname}, що адмінимо сьогодні?"
     reply_markup = InlineKeyboardMarkup(keyboard)

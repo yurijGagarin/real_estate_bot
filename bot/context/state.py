@@ -10,11 +10,13 @@ class State:
         filter_index=0,
         filters=None,
         is_subscription=False,
+        subscribe_user=False,
     ):
         self.result_sliced_view = result_sliced_view
         self.filter_index = filter_index
         self.filters = filters if filters is not None else []
         self.is_subscription = is_subscription
+        self.subscribe_user = subscribe_user
 
     def to_json(self):
         return json.dumps(
@@ -23,6 +25,7 @@ class State:
                 "i": self.filter_index,
                 "f": self.filters,
                 "sbcsr_mode": self.is_subscription,
+                "sbcr_user": self.subscribe_user,
             }
         )
 
@@ -35,6 +38,7 @@ class State:
             filter_index=data.get("i") or 0,
             filters=data.get("f") or [],
             is_subscription=data.get("sbcsr_mode"),
+            subscribe_user=data.get("sbcr_user"),
         )
 
     @classmethod

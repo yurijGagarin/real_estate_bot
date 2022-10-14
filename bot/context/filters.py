@@ -56,11 +56,11 @@ class BaseFilter:
     desired_amount_of_rows: int = 2
 
     def __init__(
-        self,
-        model: Type[Ad],
-        state: Optional[Dict],
-        prev_filter: Optional["BaseFilter"] = None,
-        name: Optional[str] = None,
+            self,
+            model: Type[Ad],
+            state: Optional[Dict],
+            prev_filter: Optional["BaseFilter"] = None,
+            name: Optional[str] = None,
     ):
 
         if name:
@@ -126,8 +126,8 @@ class BaseFilter:
         has_pagination = all_items_len > ITEMS_PER_PAGE
 
         items = all_items[
-            ITEMS_PER_PAGE * self.page_idx : (self.page_idx + 1) * ITEMS_PER_PAGE
-        ]
+                ITEMS_PER_PAGE * self.page_idx: (self.page_idx + 1) * ITEMS_PER_PAGE
+                ]
 
         keyboard = []
         row = []
@@ -278,11 +278,11 @@ class RoomsFilter(BaseFilter):
     has_select_all = True
 
     def __init__(
-        self,
-        model: Type[Ad],
-        state: Optional[Dict],
-        prev_filter: Optional["BaseFilter"] = None,
-        name: Optional[str] = None,
+            self,
+            model: Type[Ad],
+            state: Optional[Dict],
+            prev_filter: Optional["BaseFilter"] = None,
+            name: Optional[str] = None,
     ):
         super().__init__(model, state, prev_filter, name)
 
@@ -355,7 +355,7 @@ class AdditionalFilter(BaseFilter):
 
     def allow_next(self):
         return (self.is_first_page() and not self.has_values()) or (
-            self.is_last_page() and self.has_selected_subitems()
+                self.is_last_page() and self.has_selected_subitems()
         )
 
     def is_first_page(self):
@@ -413,7 +413,7 @@ class AdditionalFilter(BaseFilter):
                 else:
                     if key == KIDS_FILTER_TEXT:
                         line = (
-                            f"--> {key} віком: " + ", ".join(selected_subitems).lower()
+                                f"--> {key} віком: " + ", ".join(selected_subitems).lower()
                         )
                     else:
                         line = f"--> {key}: " + ", ".join(selected_subitems).lower()
@@ -449,7 +449,8 @@ class AdditionalFilter(BaseFilter):
         active_items = [
             k for k, v in self.values.items() if v and k in self.BUTTONS_MAPPING.keys()
         ]
-        active_item = active_items[self.page_idx - 1]
+        page_idx = min(max(self.page_idx - 1, 0), len(active_items) - 1)
+        active_item = active_items[page_idx]
         return active_item
 
     #

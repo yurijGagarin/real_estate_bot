@@ -1,3 +1,5 @@
+import json
+
 from telegram import InlineKeyboardButton
 
 from bot.navigation.constants import (
@@ -27,6 +29,7 @@ ADS_BUTTONS = {
     "Здати квартиру 🏢": ADS_APS_STATE,
     # "Здати будтинок 🏢": ADS_HOUSES_STATE,
 }
+
 SUBSCRIPTION_BUTTONS = {
     "Квартири 🏢": APARTMENTS_STATE,
     "Будинки 🏡": HOUSES_STATE,
@@ -51,6 +54,8 @@ SKIP_BTN_TEXT = "Пропустити ➡"
 # Buttons Callbacks
 ACTION_NEXT = "n"
 ACTION_BACK = "b"
+ACTION_USER_SUBSCRIBE = "user_sub"
+ACTION_SELF_SUBSCRIBE = "self_sub"
 MAIN_MENU = "m"
 ACTION_SUBSCRIBE = "sub"
 SHOW_NEXT_PAGE = "else"
@@ -74,7 +79,10 @@ ADMIN_MENU_BTN = InlineKeyboardButton(
 CANCEL_SUBSCRIPTION_BTN = InlineKeyboardButton(
     CANCEL_SUBSCRIPTION_BTN_TEXT, callback_data=CANCEL_SUBSCRIPTION_STATE
 )
-
+SUBSCRIBE_USER_BUTTONS = {
+    "Підписати себе": json.dumps({ACTION_SELF_SUBSCRIBE: 1}),
+    "Підписати користувача": json.dumps({ACTION_USER_SUBSCRIBE: 1}),
+}
 
 def get_next_btn(text: str, callback: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
