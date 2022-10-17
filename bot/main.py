@@ -20,6 +20,7 @@ from telegram.ext import (
 from bot import config
 from bot.ads.handlers import ads_dialog_handler
 from bot.ads.navigation.constants import ADS_DIALOG_STAGE
+from bot.config import SENTRY_ENV
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -66,8 +67,7 @@ from bot.notifications import notify_admins
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN,
                 traces_sample_rate=1.0,
-                # todo: make  env var
-                # environment='localtest'
+                environment=SENTRY_ENV
                 )
 
 
@@ -80,7 +80,7 @@ async def sync_data(forwarder: MessageForwarder):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    # todo: uncomment when help is needed
+    # todo: uncomment when videohelp is needed
     # user = await get_user(update.effective_user.id)
     # if not user:
     #     await context.bot.send_message(chat_id=update.effective_user.id,
@@ -128,7 +128,7 @@ async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
     return ADS_STAGE
 
 
-# todo: uncomment when help is needed
+# todo: uncomment when videohelp is needed
 # async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
 #     await forward_static_content(
 #         chat_id=update.effective_user.id,
@@ -190,15 +190,6 @@ async def cancel_subscription(
                     subscription_menu=True)
 
     return SUBSCRIPTION_STAGE
-
-
-# async def subscribe_user(
-#         update: Update, context: ContextTypes.DEFAULT_TYPE
-# ) -> str:
-#
-#     await update.callback_query.edit_message_text(text='Введіть     ')
-#
-#     return SUBSCRIPTION_STAGE
 
 
 async def back_to_main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -385,7 +376,6 @@ def main() -> None:
                 CallbackQueryHandler(
                     ads_handler, pattern="^" + str(ADS_STATE) + "$"
                 ),
-                # todo fix it перенести админ6 меню где оно надо
                 CallbackQueryHandler(
                     admin_menu, pattern="^" + str(ADMIN_MENU_STATE) + "$"
                 ),
@@ -476,13 +466,9 @@ def main() -> None:
                 CallbackQueryHandler(
                     rent_handler, pattern="^" + str(MAIN_MENU_STATE) + "$"
                 ),
-                # CallbackQueryHandler(
-                #     subscribe_user, pattern="^" + str(SUBSCRIBE_USER_STATE) + "$"
-                # ),
             ],
         },
         fallbacks=[CommandHandler("start", start),
-                   # todo: uncomment when help is needed
                    CommandHandler("help", help)
                    ],
     )
@@ -496,10 +482,10 @@ def main() -> None:
 
 
 async def start_schedules(forwarder: MessageForwarder):
-    schedule.every(1).hours.do(sync_data, forwarder=forwarder)
+    schedule.every(2).hours.do(sync_data, forwarder=forwarder)
 
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(360)
         await schedule.run_pending()
 
 

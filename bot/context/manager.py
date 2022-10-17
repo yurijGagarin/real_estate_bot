@@ -289,8 +289,6 @@ class Manager:
             page_offset += SHOW_ITEMS_PER_PAGE
             text = LOAD_MORE_LINKS_TEXT
             keyboard.append(NEXT_PAGE_BTN)
-            # if is_same_subscription:
-            #     text += f'\nВи підписалися на оновлення за цими критеріями ✅'
 
         keyboard.append([get_back_btn(), HOME_MENU_BTN])
         if not is_same_subscription:
@@ -305,8 +303,6 @@ class Manager:
                 text=text, reply_markup=reply_markup
             )
         if empty_result:
-            # if is_same_subscription:
-            #     text += f'\nВи підписалися на оновлення за цими критеріями ✅'
             return await self.update.callback_query.edit_message_text(
                 text=text, reply_markup=reply_markup
             )
