@@ -20,7 +20,6 @@ from telegram.ext import (
 from bot import config
 from bot.ads.handlers import ads_dialog_handler
 from bot.ads.navigation.constants import ADS_DIALOG_STAGE
-from bot.config import SENTRY_ENV
 from bot.context.filters import (
     RoomsFilter,
     DistrictFilter,
@@ -67,7 +66,7 @@ from bot.notifications import notify_admins
 logger = logging.getLogger(__name__)
 sentry_sdk.init(dsn=config.SENTRY_DSN,
                 traces_sample_rate=1.0,
-                environment=SENTRY_ENV
+                environment=config.SENTRY_ENV
                 )
 
 
