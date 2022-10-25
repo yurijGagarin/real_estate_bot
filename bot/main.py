@@ -64,9 +64,10 @@ from bot.navigation.constants import (
 from bot.notifications import notify_admins
 
 logger = logging.getLogger(__name__)
+# todo fix .env/config/docker-compose
 sentry_sdk.init(dsn=config.SENTRY_DSN,
                 traces_sample_rate=1.0,
-                environment=config.SENTRY_ENV
+                # environment=config.SENTRY_ENV
                 )
 
 

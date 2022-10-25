@@ -1,4 +1,5 @@
 import datetime
+import logging
 from operator import or_
 from typing import Dict, List, Type
 
@@ -93,7 +94,7 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         result = await session.execute(query)
 
         value = result.fetchall()
-        print(value)
+        # logging.debug(value)
         return [v[0] for v in value]
 
 

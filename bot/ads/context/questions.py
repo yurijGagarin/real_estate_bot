@@ -88,11 +88,12 @@ class TextQuestion(BaseQuestion):
         super().__init__(state, question_name, question_text)
 
     async def process_action(self, payload: Payload, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        answer = (payload.message.strip())
+        answer = ''
+        if payload.message:
+            answer = (payload.message.strip())
+            await update.message.delete()
         if answer:
             self.answer = answer
-        if payload.message:
-            await update.message.delete()
         return dict(self.state)
 
     async def build_text(self, is_final=False, is_active=False):
@@ -147,7 +148,6 @@ class TextQuestion(BaseQuestion):
 
 class ContactTextQuestion(TextQuestion):
 
-    # todo: rewrite build text
     async def build_text(self, is_final=False, is_active=False):
         text_without_answer_received = f"⏭ <b>{self.question_name}</b>: " + self.question_text + "\n"
         alert_text = f"\n ❌ Введіть будь ласка коректний номер телефону!"
