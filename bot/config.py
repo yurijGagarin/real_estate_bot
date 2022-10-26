@@ -12,7 +12,7 @@ API_ID = os.environ["API_ID"]
 API_HASH = os.environ["API_HASH"]
 SESSION_NAME = "real_estate_rent_bot"
 SENTRY_DSN = os.environ["SENTRY_DSN"]
-# SENTRY_ENV = os.environ["SENTRY_ENV"]
+SENTRY_ENV = os.environ["SENTRY_ENV"]
 
 STATIC_FROM_CHAT_ID = int(os.environ["STATIC_FROM_CHAT_ID"])
 WELCOME_VIDEO = os.environ["WELCOME_VIDEO"]

@@ -7,7 +7,6 @@ from typing import List
 from telegram import Update, InlineKeyboardMarkup, Message
 from telegram.ext import ContextTypes
 
-# from bot.ads.api.google import GoogleApi #TODO: fix it
 from bot.ads.context.payload import Payload
 from bot.ads.context.questions import BaseQuestion, QuestionDefinition, ADDRESS_Q_NAME, IMAGE_Q_NAME
 from bot.ads.context.state import State
@@ -228,7 +227,6 @@ class Manager:
             data_row[q_ids[IMAGE_Q_NAME] - 1],
             data_row[q_ids[IMAGE_Q_NAME]],
         ]
-        # change фотографії на посилання
         data_to_spreadsheet = [new_data_row]
 
         api.update_values(data_to_spreadsheet)
@@ -240,7 +238,6 @@ class Manager:
         keyboard.append([HOME_MENU_BTN])
         text = 'Дані успішно збережені, наш менеджер звʼяжеться з вами найближчим часом'
         reply_markup = InlineKeyboardMarkup(keyboard)
-        # todo: tmp_data workout
         await self.edit_message(outer_text=text, outer_reply_markup=reply_markup)
         self.save_state()
 

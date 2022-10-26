@@ -421,7 +421,6 @@ class AdditionalFilter(BaseFilter):
         text.append(" ")
         return "\n".join(text)
 
-    # TODO BTN
     def build_next_btn(self):
         if not self.allow_next() and self.has_selected_subitems():
             return get_next_btn(
@@ -465,7 +464,6 @@ class AdditionalFilter(BaseFilter):
                 pets_filter.append(k)
         filters = []
         conditions = []
-        # TODO: REWRITE
         all_kids_filters_selected = len(kids_filter) == len(
             self.BUTTONS_MAPPING[KIDS_FILTER_TEXT]["items"]
         )
@@ -594,7 +592,6 @@ class LivingAreaFilter(BaseFilter):
     @function_logger
     async def build_query(self):
         q = await self.get_query()
-        # TODO rewrite better
         area_from = [0]
         area_to = [10000]
         for k, v in LIVING_AREAS.items():

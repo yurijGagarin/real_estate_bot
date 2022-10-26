@@ -150,7 +150,6 @@ class GoogleApi:
             logger.error(f'An error occurred: {error}')
             raise error
 
-    # todo: add typing
     def update_values(self, values: List[List]):
         try:
             self.insert_new_row_to_spreadsheet()
