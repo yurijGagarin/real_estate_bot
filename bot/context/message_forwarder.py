@@ -39,7 +39,7 @@ class MessageForwarder:
 
         message = messages[0]
         strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
-                             '🏚 @LvivNovobud канал з продажу']
+                                        '🏚 @LvivNovobud канал з продажу']
         if message.media_group_id is not None:
             parsed_media_group = await self.app.get_media_group(
                 chat_id=self.from_chat_id, message_id=message_id
@@ -50,7 +50,7 @@ class MessageForwarder:
                 if m.photo:
                     media = InputMediaPhoto(m.photo.file_id, caption=m.caption)
                 elif m.video:
-                    media = InputMediaVideo(m.photo.file_id, caption=m.caption)
+                    media = InputMediaVideo(m.video.file_id, caption=m.caption)
                 if media is None:
                     continue
                 media_group_to_send.append(media)
