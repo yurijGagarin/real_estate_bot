@@ -6,7 +6,7 @@ from typing import Type, List
 import aioschedule as schedule
 import sentry_sdk
 from pyrogram import Client
-from telegram import Update
+from telegram import Update, InputMediaPhoto
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -64,10 +64,9 @@ from bot.navigation.constants import (
 from bot.notifications import notify_admins
 
 logger = logging.getLogger(__name__)
-# todo fix .env/config/docker-compose
 sentry_sdk.init(dsn=config.SENTRY_DSN,
                 traces_sample_rate=1.0,
-                # environment=config.SENTRY_ENV
+                environment=config.SENTRY_ENV
                 )
 
 
@@ -254,7 +253,6 @@ async def get_total_users_with_subscription(
     return ADMIN_MENU_STAGE
 
 
-# TODO Typing here
 def create_refresh_handler(forwarder: MessageForwarder):
     async def refresh_handler(
             update: Update, context: ContextTypes.DEFAULT_TYPE

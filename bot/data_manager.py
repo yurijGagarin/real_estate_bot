@@ -201,7 +201,5 @@ class DataManager:
         users = await get_users_with_subscription()
         for user in users:
             result = await get_user_subscription(user)
-            # todo: check this catcher
             if len(result) > 0:
                 await forwarder.forward_estates_to_user(user.id, result)
-                await asyncio.sleep(8)

@@ -27,6 +27,7 @@ services:
       API_HASH: '${API_HASH}'
       API_ID: '${API_ID}'
       SENTRY_DSN: '${SENTRY_DSN}'
+      SENTRY_ENV: '${SENTRY_ENV}'
       STATIC_FROM_CHAT_ID: '${STATIC_FROM_CHAT_ID}'
       WELCOME_VIDEO: '${WELCOME_VIDEO}'
     restart: always

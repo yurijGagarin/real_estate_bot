@@ -6,6 +6,7 @@ from typing import List, Optional
 import pyrogram.errors.exceptions.all
 from pyrogram import Client
 from pyrogram.errors import FloodWait
+from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from telegram.ext import ContextTypes
 
 from bot.db import get_admin_users, save_user, get_user
@@ -29,7 +30,6 @@ class MessageForwarder:
 
     async def forward_message(self, message_link: str, chat_id: int):
         message_id = MessageForwarder.get_message_id_from_link(message_link)
-        #todo:rewrite
         messages = await self.app.get_messages(
             chat_id=self.from_chat_id, message_ids=[message_id]
         )
@@ -38,19 +38,33 @@ class MessageForwarder:
             raise MessageNotFound(message_link=message_link)
 
         message = messages[0]
-        message_ids = [message.id]
+        strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
+                             '🏚 @LvivNovobud канал з продажу']
         if message.media_group_id is not None:
-            #TODO: try to cache it
-            media_group = await self.app.get_media_group(
+            parsed_media_group = await self.app.get_media_group(
                 chat_id=self.from_chat_id, message_id=message_id
             )
-            message_ids += [m.id for m in media_group]
-
-        await self.app.forward_messages(
-            chat_id=chat_id,
-            from_chat_id=self.from_chat_id,
-            message_ids=list(set(message_ids)),
-        )
+            media_group_to_send = []
+            for m in parsed_media_group:
+                media = None
+                if m.photo:
+                    media = InputMediaPhoto(m.photo.file_id, caption=m.caption)
+                elif m.video:
+                    media = InputMediaVideo(m.photo.file_id, caption=m.caption)
+                if media is None:
+                    continue
+                media_group_to_send.append(media)
+            edited_caption = media_group_to_send[0].caption.split('\n')
+            edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
+            additional_caption = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
+                                  '',
+                                  '🏚 @LvivOG канал з орендою',
+                                  '🏚 @LvivNovobud канал з продажу']
+            edited_caption += additional_caption
+            media_group_to_send[0].caption = '\n'.join(edited_caption)
+            await self.app.send_media_group(chat_id=chat_id, media=media_group_to_send)
+        else:
+            await self.app.send_message(chat_id=chat_id, text=message_link)
 
     async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
         logger.info("Forward messages %s to user %s", message_links, user_id)
