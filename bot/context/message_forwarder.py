@@ -6,7 +6,7 @@ from typing import List, Optional
 import pyrogram.errors.exceptions.all
 from pyrogram import Client
 from pyrogram.errors import FloodWait
-from pyrogram.types import InputMediaPhoto
+from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from telegram.ext import ContextTypes
 
 from bot.db import get_admin_users, save_user, get_user
@@ -46,10 +46,17 @@ class MessageForwarder:
             )
             media_group_to_send = []
             for m in parsed_media_group:
-                media_group_to_send.append(InputMediaPhoto(m.photo.file_id, caption=m.caption))
+                media = None
+                if m.photo:
+                    media = InputMediaPhoto(m.photo.file_id, caption=m.caption)
+                elif m.video:
+                    media = InputMediaVideo(m.photo.file_id, caption=m.caption)
+                if media is None:
+                    continue
+                media_group_to_send.append(media)
             edited_caption = media_group_to_send[0].caption.split('\n')
             edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
-            additional_caption = [f"🔍 <a href='{message_link}'>Посилання на обʼєкт</a>",
+            additional_caption = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
                                   '',
                                   '🏚 @LvivOG канал з орендою',
                                   '🏚 @LvivNovobud канал з продажу']
