@@ -31,14 +31,27 @@ def is_data_new_for_instance(data: Dict[str, str], instance: bot.models.Ad):
 
 
 async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, str]]):
+    # todo: it could be admin alert
+    # seen = set()
+    # not_uniq = []
+    # for datum in data:
+    #     if datum["id"] not in seen:
+    #         seen.add(datum["id"])
+    #     else:
+    #         not_uniq.append(datum["id"])
+    #
+    # print(not_uniq)
     updated_date = datetime.datetime.utcnow()
     async with async_session() as session:
         for datum in data:
-            instance = await session.get(model, datum["id"])
-            if instance is None:
+            del datum["id"]
+            result = await session.execute(select(model).where(model.link == datum["link"]))
+            instances = result.fetchone()
+            if instances is None:
                 instance = model(**datum)
                 instance.updated_at = updated_date
             else:
+                instance = instances[0]
                 if is_data_new_for_instance(datum, instance):
                     for k, v in datum.items():
                         setattr(instance, k, v)

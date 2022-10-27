@@ -42,9 +42,10 @@ class MessageForwarder:
                                         '🏚 @LvivNovobud канал з продажу']
         if message.media_group_id is not None:
             parsed_media_group = await self.app.get_media_group(
-                chat_id=self.from_chat_id, message_id=message_id
-            )
+                chat_id=self.from_chat_id, message_id=message_id)
+            # filter and find first not None caption
             media_group_to_send = []
+            original_caption = ''
             for m in parsed_media_group:
                 media = None
                 if m.photo:
@@ -53,8 +54,10 @@ class MessageForwarder:
                     media = InputMediaVideo(m.video.file_id, caption=m.caption)
                 if media is None:
                     continue
+                if not original_caption and m.caption:
+                    original_caption = m.caption
                 media_group_to_send.append(media)
-            edited_caption = media_group_to_send[0].caption.split('\n')
+            edited_caption = original_caption.split('\n')
             edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
             additional_caption = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
                                   '',
