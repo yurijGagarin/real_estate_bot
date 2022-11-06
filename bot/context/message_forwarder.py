@@ -38,12 +38,12 @@ class MessageForwarder:
             raise MessageNotFound(message_link=message_link)
 
         message = messages[0]
+        # fix capitalized letter
         strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
                                         '🏚 @LvivNovobud канал з продажу']
         if message.media_group_id is not None:
             parsed_media_group = await self.app.get_media_group(
                 chat_id=self.from_chat_id, message_id=message_id)
-            # filter and find first not None caption
             media_group_to_send = []
             original_caption = ''
             for m in parsed_media_group:
