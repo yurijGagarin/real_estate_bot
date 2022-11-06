@@ -6,7 +6,7 @@ from typing import Type, List
 import aioschedule as schedule
 import sentry_sdk
 from pyrogram import Client
-from telegram import Update, InputMediaPhoto
+from telegram import Update
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
