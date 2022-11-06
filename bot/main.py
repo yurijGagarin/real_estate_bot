@@ -79,7 +79,7 @@ async def sync_data(forwarder: MessageForwarder):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    # todo: uncomment when videohelp is needed
+    # todo: uncomment when video help is needed
     # user = await get_user(update.effective_user.id)
     # if not user:
     #     await context.bot.send_message(chat_id=update.effective_user.id,
