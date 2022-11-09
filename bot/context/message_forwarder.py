@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import logging
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 import pyrogram.errors.exceptions.all
 from pyrogram import Client
@@ -39,35 +39,40 @@ class MessageForwarder:
 
         message = messages[0]
         # fix capitalized letter
-        strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
-                                        '🏚 @LvivNovobud канал з продажу']
+
         if message.media_group_id is not None:
-            parsed_media_group = await self.app.get_media_group(
-                chat_id=self.from_chat_id, message_id=message_id)
-            media_group_to_send = []
-            original_caption = ''
-            for m in parsed_media_group:
-                media = None
-                if m.photo:
-                    media = InputMediaPhoto(m.photo.file_id, caption=m.caption)
-                elif m.video:
-                    media = InputMediaVideo(m.video.file_id, caption=m.caption)
-                if media is None:
-                    continue
-                if not original_caption and m.caption:
-                    original_caption = m.caption
-                media_group_to_send.append(media)
-            edited_caption = original_caption.split('\n')
-            edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
-            additional_caption = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
-                                  '',
-                                  '🏚 @LvivOG канал з орендою',
-                                  '🏚 @LvivNovobud канал з продажу']
-            edited_caption += additional_caption
-            media_group_to_send[0].caption = '\n'.join(edited_caption)
-            await self.app.send_media_group(chat_id=chat_id, media=media_group_to_send)
+            parsing_result = await self.parse_media_group(message_id, message_link)
+            await self.app.send_media_group(chat_id=chat_id, media=parsing_result['media_group_to_send'])
         else:
             await self.app.send_message(chat_id=chat_id, text=message_link)
+
+    async def parse_media_group(self, message_id, message_link) -> Dict:
+        strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
+                                        '🏚 @LvivNovobud канал з продажу']
+        parsed_media_group = await self.app.get_media_group(
+            chat_id=self.from_chat_id, message_id=message_id)
+        result = {'media_group_to_send': []}
+        original_caption = ''
+        for m in parsed_media_group:
+            media = None
+            if m.photo:
+                media = InputMediaPhoto(m.photo.file_id, caption=m.caption)
+            elif m.video:
+                media = InputMediaVideo(m.video.file_id, caption=m.caption)
+            if media is None:
+                continue
+            if not original_caption and m.caption:
+                original_caption = m.caption
+            result['media_group_to_send'].append(media)
+        edited_caption = original_caption.split('\n')
+        edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
+        additional_caption_text = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
+                                   '',
+                                   '🏚 @LvivOG канал з орендою',
+                                   '🏚 @LvivNovobud канал з продажу']
+        edited_caption += additional_caption_text
+        result['media_group_to_send'][0].caption = '\n'.join(edited_caption)
+        return result
 
     async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
         logger.info("Forward messages %s to user %s", message_links, user_id)
