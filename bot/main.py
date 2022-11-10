@@ -79,21 +79,6 @@ async def sync_data(forwarder: MessageForwarder):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    # todo: uncomment when video help is needed
-    # user = await get_user(update.effective_user.id)
-    # if not user:
-    #     await context.bot.send_message(chat_id=update.effective_user.id,
-    #                                    text='Вітаємо вас в боті нерухомості.\n'
-    #                                         'Якщо є якісь питання стосовно користування ботом,'
-    #                                         ' можете подивитися відеоінструкцію.\n'
-    #                                         'Відеоінструкція завжди доступна за командою /help ')
-    #
-    #     await forward_static_content(
-    #         chat_id=update.effective_user.id,
-    #         from_chat_id=config.STATIC_FROM_CHAT_ID,
-    #         message_id=config.WELCOME_VIDEO,
-    #         context=context
-    #     )
     await show_menu(update=update,
                     context=context,
                     buttons_pattern=START_BUTTONS,
@@ -125,24 +110,6 @@ async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
                     )
 
     return ADS_STAGE
-
-
-# todo: uncomment when videohelp is needed
-# async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-#     await forward_static_content(
-#         chat_id=update.effective_user.id,
-#         from_chat_id=config.STATIC_FROM_CHAT_ID,
-#         message_id=config.WELCOME_VIDEO,
-#         context=context
-#     )
-#     await show_menu(update=update,
-#                     context=context,
-#                     buttons_pattern=START_BUTTONS,
-#                     text=MAIN_MENU_TEXT,
-#                     items_in_a_row=1,
-#                     main_menu=True)
-#
-#     return START_STAGE
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -466,9 +433,10 @@ def main() -> None:
                 ),
             ],
         },
-        fallbacks=[CommandHandler("start", start),
-                   CommandHandler("help", help)
-                   ],
+        fallbacks=[
+            CommandHandler("start", start),
+            CommandHandler("help", help)
+        ],
     )
 
     application.add_handler(conv_handler)

@@ -38,8 +38,6 @@ class MessageForwarder:
             raise MessageNotFound(message_link=message_link)
 
         message = messages[0]
-        # fix capitalized letter
-
         if message.media_group_id is not None:
             parsing_result = await self.parse_media_group(message_id, message_link)
             await self.app.send_media_group(chat_id=chat_id, media=parsing_result['media_group_to_send'])
@@ -48,7 +46,8 @@ class MessageForwarder:
 
     async def parse_media_group(self, message_id, message_link) -> Dict:
         strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
-                                        '🏚 @LvivNovobud канал з продажу']
+                                        '🏚 @LvivNovobud канал з продажу',
+                                        '🔍 @real_estate_rent_bot бот для пошуку']
         parsed_media_group = await self.app.get_media_group(
             chat_id=self.from_chat_id, message_id=message_id)
         result = {'media_group_to_send': []}
@@ -64,14 +63,25 @@ class MessageForwarder:
             if not original_caption and m.caption:
                 original_caption = m.caption
             result['media_group_to_send'].append(media)
-        edited_caption = original_caption.split('\n')
-        edited_caption = list(filter(lambda el: el not in strings_to_remove_in_caption, edited_caption))
-        additional_caption_text = [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
-                                   '',
-                                   '🏚 @LvivOG канал з орендою',
-                                   '🏚 @LvivNovobud канал з продажу']
-        edited_caption += additional_caption_text
-        result['media_group_to_send'][0].caption = '\n'.join(edited_caption)
+        lined_caption = original_caption.split('\n')
+        new_caption = []
+        manager_username = None
+        for line in lined_caption:
+            if '📩' in line:
+                manager_username = line
+                continue
+            if line in strings_to_remove_in_caption:
+                continue
+            new_caption.append(line)
+
+        new_caption += [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
+                        '', ]
+        if manager_username is not None:
+            new_caption += [f'Записатися на перегляд {manager_username}',
+                            '', ]
+        new_caption += ['🏚 @LvivOG канал з орендою',
+                        '🏚 @LvivNovobud канал з продажу']
+        result['media_group_to_send'][0].caption = '\n'.join(new_caption)
         return result
 
     async def forward_estates_to_user(self, user_id: int, message_links: List[str]):
