@@ -66,20 +66,25 @@ class MessageForwarder:
         lined_caption = original_caption.split('\n')
         new_caption = []
         manager_username = None
+        manager_phone_number = None
         for line in lined_caption:
             if '📩' in line:
                 manager_username = line
                 continue
+            if '☎️' in line:
+                manager_phone_number = line.split()[1]
+                continue
             if line in strings_to_remove_in_caption:
                 continue
             new_caption.append(line)
-
-        new_caption += [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
-                        '', ]
+        if manager_phone_number is not None:
+            new_caption += [f'<a href="tel:{manager_phone_number}">☎️ {manager_phone_number} ⬅️ зателефонувати</a>']
         if manager_username is not None:
-            new_caption += [f'Записатися на перегляд {manager_username}',
+            new_caption += [f'{manager_username} ⬅️ записатися на огляд об`єкту',
                             '', ]
-        new_caption += ['🏚 @LvivOG канал з орендою',
+        new_caption += [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
+                        '',
+                        '🏚 @LvivOG канал з орендою',
                         '🏚 @LvivNovobud канал з продажу']
         result['media_group_to_send'][0].caption = '\n'.join(new_caption)
         return result
