@@ -12,8 +12,7 @@ from bot.navigation.constants import (
     REFRESH_DB_STATE,
     ADMIN_MENU_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE, RENT_STATE, ADS_STATE, ADS_APS_STATE,
-)
+    MAIN_MENU_STATE, RENT_STATE, ADS_STATE, ADS_APS_STATE, SUBMIT_HELP_STATE)
 
 # Buttons patterns
 START_BUTTONS = {
@@ -70,6 +69,8 @@ HOME_MENU_BTN = InlineKeyboardButton(
     HOME_MENU_BTN_TEXT, callback_data='{"%s": 1}' % MAIN_MENU
 )
 MAIN_MENU_BTN = InlineKeyboardButton(BACK_BTN_TEXT, callback_data=MAIN_MENU_STATE)
+SUBMIT_HELP_BTN = InlineKeyboardButton(text="Попросити про допомогу", callback_data=SUBMIT_HELP_STATE)
+
 SUBSCRIPTION_BTN = InlineKeyboardButton(
     SUBSCRIPTION_BTN_TEXT, callback_data='{"%s":1}' % ACTION_SUBSCRIBE
 )
@@ -83,6 +84,7 @@ SUBSCRIBE_USER_BUTTONS = {
     "Підписати себе": json.dumps({ACTION_SELF_SUBSCRIBE: 1}),
     "Підписати користувача": json.dumps({ACTION_USER_SUBSCRIBE: 1}),
 }
+
 
 def get_next_btn(text: str, callback: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback)
