@@ -469,7 +469,7 @@ def main() -> None:
             ],
             HELP_STAGE: [
                 MessageHandler(
-                    filters.TEXT, help_message_handler
+                    filters.TEXT & (~filters.COMMAND), help_message_handler
                 ),
                 CallbackQueryHandler(
                     back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
