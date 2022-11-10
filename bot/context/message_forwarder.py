@@ -80,7 +80,7 @@ class MessageForwarder:
         if manager_phone_number is not None:
             new_caption += [f'<a href="tel:{manager_phone_number}">☎️ {manager_phone_number} ⬅️ зателефонувати</a>']
         if manager_username is not None:
-            new_caption += [f'{manager_username} ⬅️ записатися на огляд об`єкту',
+            new_caption += [f'{manager_username} ⬅️ записатися на перегляд',
                             '', ]
         new_caption += [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
                         '',
