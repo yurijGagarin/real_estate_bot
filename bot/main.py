@@ -146,10 +146,10 @@ async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    welcome_help_text = 'Доброго, дня для того щоб надіслати запит на допомогу, напишіть мені з чим потрібно допомогти'
+    text = 'Привіт! 😊 Це сервіс з оренди житла у Львові. Напиши, в чому саме потрібна допомога або консультація!'
     reply_markup = InlineKeyboardMarkup([[MAIN_MENU_BTN]])
     help_menu = await context.bot.send_message(chat_id=update.effective_user.id,
-                                               text=welcome_help_text,
+                                               text=text,
                                                parse_mode='HTML',
                                                reply_markup=reply_markup)
     context.bot_data['help_menu_message_id'] = help_menu.id
