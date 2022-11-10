@@ -1,9 +1,8 @@
 import datetime
-import logging
 from operator import or_
 from typing import Dict, List, Type
 
-from sqlalchemy import select, column, Column, delete, desc, Integer
+from sqlalchemy import select, column, Column, delete, desc, Integer, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.serializer import loads
 from sqlalchemy.orm import sessionmaker
@@ -43,15 +42,22 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
     # print(not_uniq)
     updated_date = datetime.datetime.utcnow()
     async with async_session() as session:
+        max_id = (await session.execute(func.max(model.id))).scalar()
         for datum in data:
-            del datum["id"]
             result = await session.execute(select(model).where(model.link == datum["link"]))
             instances = result.fetchone()
             if instances is None:
+                existing_row = await session.get(model, datum['id'])
+                if existing_row is not None:
+                    max_id += 1
+                    datum['id'] = max_id
+                else:
+                    max_id = max(max_id, datum['id'])
                 instance = model(**datum)
                 instance.updated_at = updated_date
             else:
                 instance = instances[0]
+                del datum["id"]
                 if is_data_new_for_instance(datum, instance):
                     for k, v in datum.items():
                         setattr(instance, k, v)
@@ -60,6 +66,7 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
             session.add(instance)
 
         await session.commit()
+
         delete_stmt = delete(model).where(
             or_(model.updated_at < updated_date, model.updated_at.is_(None))
         )

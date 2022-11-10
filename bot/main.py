@@ -6,7 +6,7 @@ from typing import Type, List
 import aioschedule as schedule
 import sentry_sdk
 from pyrogram import Client
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
     CallbackQueryHandler,
@@ -43,7 +43,7 @@ from bot.navigation.basic_keyboard_builder import (
     show_menu,
 )
 from bot.navigation.buttons_constants import SUBSCRIPTION_BUTTONS, START_BUTTONS, ADMIN_BUTTONS, RENT_BUTTONS, \
-    ADS_BUTTONS
+    ADS_BUTTONS, MAIN_MENU_BTN, SUBMIT_HELP_BTN, HOME_MENU_BTN_TEXT, get_regular_btn
 from bot.navigation.constants import (
     SUBSCRIPTION_STAGE,
     START_STAGE,
@@ -60,7 +60,7 @@ from bot.navigation.constants import (
     TOTAL_SUBSCRIBED_USERS_STATE,
     CANCEL_SUBSCRIPTION_STATE,
     MAIN_MENU_STATE, RENT_STAGE, RENT_STATE, ADS_STATE, ADS_STAGE, ADS_APS_STATE, SUBSCRIPTION_TEXT, MAIN_MENU_TEXT,
-    RENT_MENU_TEXT, ADS_MENU_TEXT, )
+    RENT_MENU_TEXT, ADS_MENU_TEXT, HELP_STAGE, SUBMIT_HELP_STATE, )
 from bot.notifications import notify_admins
 
 logger = logging.getLogger(__name__)
@@ -146,20 +146,55 @@ async def ads_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str
 
 
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    welcome_help_text = 'Доброго, дня для того щоб надіслати запит на допомогу, напишіть мені з чим потрібно допомогти'
+    reply_markup = InlineKeyboardMarkup([[MAIN_MENU_BTN]])
+    help_menu = await context.bot.send_message(chat_id=update.effective_user.id,
+                                               text=welcome_help_text,
+                                               parse_mode='HTML',
+                                               reply_markup=reply_markup)
+    context.bot_data['help_menu_message_id'] = help_menu.id
+
+    return HELP_STAGE
+
+
+async def submit_help(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     notify_text = f"Користувач з Telegram ID: <b>{update.effective_user.id}</b>," \
-                  f" Username: <b>@{update.effective_user.username}</b> потребує допомоги."
+                  f" Username: <b>@{update.effective_user.username}</b> потребує допомоги.\n" \
+                  f"Повідомлення від користувача:\n{context.bot_data['user_help_message']}"
+
     await notify_admins(context.bot, notify_text)
     help_required_text = "Наш менеджер отримав Ваше прохання про допомогу" \
                          " та звʼяжется з вами найближчим часом.\n" \
-                         "Ви можете продовжити користування ботом  Lviv City Estate"
+                         "Ви можете продовжити користування ботом Lviv City Estate"
     await show_menu(update=update,
                     context=context,
                     buttons_pattern=START_BUTTONS,
                     text=help_required_text,
                     items_in_a_row=1,
                     main_menu=True)
-
     return START_STAGE
+
+
+async def help_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+    if update.message:
+        context.bot_data['user_help_message'] = update.message.text
+        text = f'''Перевірте будь ласка ваше повідомлення.
+Ваше повідомлення:
+▶️<b>{context.bot_data["user_help_message"]}</b> 
+               
+▪️ Якщо все гаразд, то натисніть кнопку <b><i>"Попросити про допомогу"</i></b>
+▪️ Якщо бажаєте змінити повідомлення, то надішліть нове повідомлення.
+▪️ Щоб повернутися в головне меню, то натисніть кнопку {HOME_MENU_BTN_TEXT}'''
+
+        await update.message.delete()
+        home_menu_btn = get_regular_btn(text=HOME_MENU_BTN_TEXT, callback=MAIN_MENU_STATE)
+        reply_markup = InlineKeyboardMarkup([[SUBMIT_HELP_BTN], [home_menu_btn]])
+        await context.bot.edit_message_text(text=text,
+                                            chat_id=update.effective_user.id,
+                                            message_id=context.bot_data['help_menu_message_id'],
+                                            reply_markup=reply_markup,
+                                            parse_mode='HTML', )
+    return HELP_STAGE
 
 
 async def subscription(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
@@ -465,6 +500,17 @@ def main() -> None:
                     rent_handler, pattern="^" + str(MAIN_MENU_STATE) + "$"
                 ),
             ],
+            HELP_STAGE: [
+                MessageHandler(
+                    filters.TEXT, help_message_handler
+                ),
+                CallbackQueryHandler(
+                    back_to_main_menu, pattern="^" + str(MAIN_MENU_STATE) + "$"
+                ),
+                CallbackQueryHandler(
+                    submit_help, pattern="^" + str(SUBMIT_HELP_STATE) + "$"
+                ),
+            ]
         },
         fallbacks=[CommandHandler("start", start),
                    CommandHandler("help", help)
