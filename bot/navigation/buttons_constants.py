@@ -12,7 +12,7 @@ from bot.navigation.constants import (
     REFRESH_DB_STATE,
     ADMIN_MENU_STATE,
     CANCEL_SUBSCRIPTION_STATE,
-    MAIN_MENU_STATE, RENT_STATE, ADS_STATE, ADS_APS_STATE, SUBMIT_HELP_STATE)
+    MAIN_MENU_STATE, RENT_STATE, ADS_STATE, ADS_APS_STATE, SUBMIT_HELP_STATE, CHECK_GEOLINK_STATE, SUBMIT_STATE)
 
 # Buttons patterns
 START_BUTTONS = {
@@ -39,6 +39,7 @@ ADMIN_BUTTONS = {
     "За минулу годину": RECENT_HOUR_USERS_STATE,
     "Всього з підпискою": TOTAL_SUBSCRIBED_USERS_STATE,
     "Оновити базу": REFRESH_DB_STATE,
+    "Перевірити геолінки": CHECK_GEOLINK_STATE,
 }
 # Buttons Texts
 HOME_MENU_BTN_TEXT = "🏠️"
@@ -70,6 +71,7 @@ HOME_MENU_BTN = InlineKeyboardButton(
 )
 MAIN_MENU_BTN = InlineKeyboardButton(BACK_BTN_TEXT, callback_data=MAIN_MENU_STATE)
 SUBMIT_HELP_BTN = InlineKeyboardButton(text="Попросити про допомогу", callback_data=SUBMIT_HELP_STATE)
+SUBMIT_BTN = InlineKeyboardButton(text="Підтвердити", callback_data=SUBMIT_STATE)
 
 SUBSCRIPTION_BTN = InlineKeyboardButton(
     SUBSCRIPTION_BTN_TEXT, callback_data='{"%s":1}' % ACTION_SUBSCRIBE

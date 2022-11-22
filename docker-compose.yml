@@ -30,6 +30,8 @@ services:
       SENTRY_ENV: '${SENTRY_ENV}'
       STATIC_FROM_CHAT_ID: '${STATIC_FROM_CHAT_ID}'
       WELCOME_VIDEO: '${WELCOME_VIDEO}'
+      RENT_SHEET_ID: '${RENT_SHEET_ID}'
+      G_MAPS_API: '${G_MAPS_API}'
     restart: always
     volumes:
       - ./data:/app/data

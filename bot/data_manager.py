@@ -32,6 +32,7 @@ PROP_TERRITORY_AREA = "territory_area"
 PROP_IS_CLOSED = "is_closed"
 PROP_KIDS = "kids"
 PROP_PETS = "pets"
+PROP_GEO = "maps_link"
 
 KIDS_FILTER_TEXT = "В мене є діти"
 PETS_FILTER_TEXT = "В мене є тварини"
@@ -105,6 +106,8 @@ MAPPING_APARTS = {
     "Актуальність": PROP_IS_CLOSED,
     "Д": PROP_KIDS,
     "Т": PROP_PETS,
+    "G": PROP_GEO,
+
 }
 MAPPING_HOUSES = {
     "№": PROP_ID,

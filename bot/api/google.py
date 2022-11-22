@@ -11,7 +11,6 @@ from googleapiclient.http import MediaFileUpload
 from loguru import logger
 
 from bot import config
-
 # If modifying these scopes, delete the file token.json.
 from bot.config import ADS_SHEET_NAME, ADS_SPREADSHEET_ID, ADS_SHEET_ID
 
@@ -36,6 +35,8 @@ class GoogleApi:
                 self.creds.refresh(Request())
             self.drive_service = build('drive', 'v3', credentials=self.creds)
             self.sheet_service = build("sheets", "v4", credentials=self.creds)
+        else:
+            raise Exception(f'No token: "{self.token_path.as_posix()}"')
 
     def generate_creds(self):
         """
@@ -179,3 +180,37 @@ class GoogleApi:
         values = result.get("values", [])
 
         return values
+
+    def batch_update_google_maps_link_by_row_idx(self, indexes: List[int], g_maps_link:str):
+        try:
+            batch_update_spreadsheet_request_body = {'requests': []}
+            for idx in indexes:
+                batch_update_spreadsheet_request_body['requests'].append(
+                    self.create_spreadsheet_batchupdate_request_for_google_maps_column_by_row_idx(idx, g_maps_link))
+            request = self.sheet_service.spreadsheets().batchUpdate(spreadsheetId=config.RENT_SPREADSHEET_ID,
+                                                                    body=batch_update_spreadsheet_request_body)
+            response = request.execute()
+            return response
+
+        except HttpError as error:
+            print(f"An error occurred: {error}")
+            return error
+
+    @staticmethod
+    def create_spreadsheet_batchupdate_request_for_google_maps_column_by_row_idx(idx: int, google_maps_link:str) -> dict:
+
+        return {
+            "updateCells":
+                {
+                    "rows": [{"values": [{"userEnteredValue": {"stringValue": google_maps_link}}]}],
+                    "fields": '*',
+                    "range": {
+                        "sheetId": config.RENT_SHEET_ID,
+                        "startRowIndex": idx - 1,
+                        "endRowIndex": idx,
+                        "startColumnIndex": 16,
+                        "endColumnIndex": 17
+                    }
+                }
+
+        }
