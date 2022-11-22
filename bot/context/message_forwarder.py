@@ -9,7 +9,8 @@ from pyrogram.errors import FloodWait
 from pyrogram.types import InputMediaPhoto, InputMediaVideo
 from telegram.ext import ContextTypes
 
-from bot.db import get_admin_users, save_user, get_user
+import bot.models
+from bot.db import get_admin_users, save_user, get_user, get_model_by_link
 from bot.exceptions import MessageNotFound
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ class MessageForwarder:
         return int(link.split("/")[-1].split("\n")[0].split("?")[0])
 
     async def forward_message(self, message_link: str, chat_id: int):
-        message_id = MessageForwarder.get_message_id_from_link(message_link)
+        message_id = self.get_message_id_from_link(message_link)
         messages = await self.app.get_messages(
             chat_id=self.from_chat_id, message_ids=[message_id]
         )
@@ -42,9 +43,12 @@ class MessageForwarder:
             parsing_result = await self.parse_media_group(message_id, message_link)
             await self.app.send_media_group(chat_id=chat_id, media=parsing_result['media_group_to_send'])
         else:
-            await self.app.send_message(chat_id=chat_id, text=message_link)
+            pass
+            # await self.app.send_message(chat_id=chat_id, text=message_link)
 
     async def parse_media_group(self, message_id, message_link) -> Dict:
+        model = await get_model_by_link(bot.models.Apartments, message_link) \
+                or get_model_by_link(bot.models.Houses, message_link)
         strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
                                         '🏚 @LvivNovobud канал з продажу',
                                         '🔍 @real_estate_rent_bot бот для пошуку']
@@ -82,6 +86,8 @@ class MessageForwarder:
         if manager_username is not None:
             new_caption += [f'{manager_username} ⬅️ записатися на перегляд',
                             '', ]
+        if model.maps_link is not None:
+            new_caption += [f"🗺 <a href='{model.maps_link}'>Розташування ЖК на Google maps</a>"]
         new_caption += [f"🔍 <a href='{message_link}'>Посилання на об'єкт в каналі</a>",
                         '',
                         '🏚 @LvivOG канал з орендою',

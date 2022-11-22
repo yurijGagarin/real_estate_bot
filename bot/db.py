@@ -1,7 +1,8 @@
 import datetime
-from operator import or_
-from typing import Dict, List, Type
+from dataclasses import dataclass
+from typing import Dict, List, Type, Optional
 
+from sqlalchemy import or_, and_
 from sqlalchemy import select, column, Column, delete, desc, Integer, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.serializer import loads
@@ -42,7 +43,7 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
     # print(not_uniq)
     updated_date = datetime.datetime.utcnow()
     async with async_session() as session:
-        max_id = (await session.execute(func.max(model.id))).scalar()
+        max_id = (await session.execute(func.max(model.id))).scalar() or 0
         for datum in data:
             result = await session.execute(select(model).where(model.link == datum["link"]))
             instances = result.fetchone()
@@ -117,12 +118,32 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         # logging.debug(value)
         return [v[0] for v in value]
 
-
+#todo get method to write data to geodata table
 async def get_user(user_id: int):
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
 
     return user
+
+
+#todo fix this
+async def write_data_to_geodata_table(address: str, district: str, map_link: str, coordinates: Dict):
+    async with async_session() as session:
+        row = await session.get(bot.models.GeoData, (address, district))
+        if not row:
+            row = bot.models.GeoData(
+                address=address,
+                district=district,
+                map_link=map_link,
+                coordinates=coordinates,
+                )
+        else:
+            row = row.update(address, district, map_link, coordinates)
+
+        session.add(row)
+        await session.commit()
+
+    return row
 
 
 async def get_user_or_create_new(update: Update):
@@ -206,3 +227,59 @@ async def migrate_data(new_db_uri):
                     stmt = table.insert().values(data)
                     await new_conn.execute(stmt)
                     await new_conn.commit()
+
+
+@dataclass
+class AddressData:
+    address: str
+    district: str
+    residential_complex: Optional[str] = None
+
+    def to_text(self):
+        parts = [
+            self.address,
+            self.district,
+        ]
+        if self.residential_complex is not None:
+            parts.append(self.residential_complex)
+        return '\n'.join(parts)
+
+    def build_google_query_and_user_text(self):
+        google_query = f'{self.address}, {self.district}, '
+        text = f'Для обʼєкта за адресою:\nВулиця: {self.address}\nРайон: {self.district} '
+        residential_complexes_to_exclude = ['всі інші жк', 'будинки 90х років', 'австрійський люкс', 'польський люкс']
+        if self.residential_complex is not None:
+            text += f'\nЖК: {self.residential_complex}'
+            if self.residential_complex.lower() not in residential_complexes_to_exclude \
+                    or self.residential_complex.lower() == self.address.lower():
+                google_query += f'ЖК {self.residential_complex}, '
+        google_query += f'Львів'
+        
+        return google_query, text
+
+
+async def _get_address_without_link(model: Type[bot.models.Ad]) -> Optional[bot.models.Ad]:
+    async with async_session() as session:
+        condition = and_(or_(model.maps_link == None, model.maps_link == ''), bot.models.GeoData.address == None)
+        stmt = select(model) \
+            .join(bot.models.GeoData,
+                  and_(bot.models.GeoData.address == model.address, bot.models.GeoData.district == model.district),
+                  isouter=True) \
+            .filter(condition) \
+            .limit(1)
+        r = await session.execute(stmt)
+
+        instance = r.fetchone()
+        return instance[0] if instance else None
+
+
+async def get_address_without_link() -> Optional[AddressData]:
+    a = await _get_address_without_link(bot.models.Apartments)
+    if a is not None and isinstance(a, bot.models.Apartments):
+        return AddressData(address=a.address, district=a.district, residential_complex=a.residential_complex)
+
+    # h = await _get_address_without_link(bot.models.Houses)
+    # if h is not None:
+    #     return AddressData(address=h.address, district=h.district)
+
+    return None

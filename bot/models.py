@@ -1,5 +1,7 @@
 import datetime
+from typing import Dict, Any
 
+from geoalchemy2 import Geometry
 from sqlalchemy import (
     Column,
     Integer,
@@ -53,9 +55,11 @@ class User(Base):
 class Ad(Base):
     __abstract__ = True
     id = Column(BigInteger, primary_key=True)
+    address = Column(String, nullable=False)
     rent_price = Column(Integer, nullable=False)
     currency = Column(String, nullable=False)
     link = Column(String, nullable=False)
+    maps_link = Column(String, nullable=True)
     rooms = Column(Integer, nullable=False)
     district = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
@@ -67,8 +71,6 @@ class Ad(Base):
 
 class Apartments(Ad):
     __tablename__ = "apartments"
-
-    street = Column(String, nullable=False)
     residential_complex = Column(String, nullable=False)
     kids = Column(String, nullable=True)
     pets = Column(String, nullable=True)
@@ -84,7 +86,6 @@ class Apartments(Ad):
 class Houses(Ad):
     __tablename__ = "houses"
 
-    placing = Column(String, nullable=False)
     living_area = Column(Integer, nullable=False)
     territory_area = Column(Integer, nullable=False)
 
@@ -95,3 +96,27 @@ class Houses(Ad):
             self.living_area,
             self.link,
         )
+
+
+class GeoData(Base):
+    __tablename__ = "geodata"
+    address = Column(String, primary_key=True)
+    district = Column(String, primary_key=True)
+    map_link = Column(String, nullable=False)
+    coordinates = Column(Geometry('POINT'))
+
+    def __init__(self, address: str, district: str, map_link: str, coordinates: Dict, *args: Any, **kwargs: Any):
+        self.address = address
+        self.district = district
+        self.map_link = map_link
+        self.coordinates = f'POINT({coordinates["lng"]} {coordinates["lat"]})'
+        super().__init__(*args, **kwargs)
+
+    def update(self, address: str, district: str, map_link: str, coordinates: Dict):
+        self.address = address
+        self.district = district
+        self.map_link = map_link
+        self.coordinates = f'POINT({coordinates["lng"]} {coordinates["lat"]})'
+
+    def __repr__(self):
+        return self.address, self.map_link

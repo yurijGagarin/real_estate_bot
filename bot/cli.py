@@ -43,6 +43,36 @@ def get_sheet_data(name: str):
     for datum in data:
         pprint(datum)
 
+@cli.command()
+@click.argument("name")
+@click.argument("address")
+@click.argument("district")
+def get_sheet_data_to_insert(name: str, address: str, district: str):
+    api = GoogleApi()
+    data = api.get_sheet_data(name)
+    to_insert = []
+    for i, row in enumerate(data[1:], 2):
+        if address in row and district in row:
+            to_insert.append(i)
+    return to_insert
+
+
+@cli.command()
+@click.argument("name")
+@click.argument("address")
+@click.argument("district")
+def insert_data_to_spreadsheet(name: str, address: str, district: str):
+    api = GoogleApi()
+    data = api.get_sheet_data(name)
+    idxs = []
+    for i, row in enumerate(data[1:], 2):
+        if address in row and district in row:
+            idxs.append(i)
+    link = 'testetstestestestestest'
+    data = api.batch_update_google_maps_link_by_row_idx(idxs, link)
+    print(data)
+    return data
+
 
 @cli.command()
 @coro
