@@ -11,8 +11,8 @@ from googleapiclient.http import MediaFileUpload
 from loguru import logger
 
 from bot import config
+
 # If modifying these scopes, delete the file token.json.
-from bot.config import ADS_SHEET_NAME, ADS_SPREADSHEET_ID, ADS_SHEET_ID
 
 SCOPES = ["https://www.googleapis.com/auth/drive",
           "https://www.googleapis.com/auth/spreadsheets",
@@ -136,7 +136,7 @@ class GoogleApi:
                     {
                         'insertDimension': {
                             'range': {
-                                "sheetId": ADS_SHEET_ID,
+                                "sheetId": config.ADS_SHEET_ID,
                                 "dimension": "ROWS",
                                 "startIndex": 1,
                                 "endIndex": 2
@@ -145,7 +145,7 @@ class GoogleApi:
                     }
                 ]
             }
-            sheet.batchUpdate(spreadsheetId=ADS_SPREADSHEET_ID,
+            sheet.batchUpdate(spreadsheetId=config.ADS_SPREADSHEET_ID,
                               body=request_body).execute()
         except HttpError as error:
             logger.error(f'An error occurred: {error}')
@@ -158,7 +158,7 @@ class GoogleApi:
                 'values': values
             }
             result = self.sheet_service.spreadsheets().values().update(
-                spreadsheetId=ADS_SPREADSHEET_ID, range=f"{ADS_SHEET_NAME}!A2:Q2",
+                spreadsheetId=config.ADS_SPREADSHEET_ID, range=f"{config.ADS_SHEET_NAME}!A2:Q2",
                 valueInputOption='RAW', body=body).execute()
             return result
         except HttpError as error:
@@ -181,36 +181,54 @@ class GoogleApi:
 
         return values
 
-    def batch_update_google_maps_link_by_row_idx(self, indexes: List[int], g_maps_link:str):
+    def batch_update_google_maps_link_by_row_idx(self, indexes: List[int], g_maps_link: str):
         try:
-            batch_update_spreadsheet_request_body = {'requests': []}
+            requests = []
+            results = []
             for idx in indexes:
-                batch_update_spreadsheet_request_body['requests'].append(
-                    self.create_spreadsheet_batchupdate_request_for_google_maps_column_by_row_idx(idx, g_maps_link))
-            request = self.sheet_service.spreadsheets().batchUpdate(spreadsheetId=config.RENT_SPREADSHEET_ID,
-                                                                    body=batch_update_spreadsheet_request_body)
-            response = request.execute()
-            return response
+                requests.append(self.create_spreadsheet_request_for_google_maps_column(idx, g_maps_link))
+
+                row_number = idx + 1
+
+                body = {
+                    'values': [[g_maps_link]]
+                }
+                result = self.sheet_service.spreadsheets().values().update(
+                    spreadsheetId=config.RENT_SPREADSHEET_ID,
+                    range=f"{config.RENT_APARTMENTS_SHEET_NAME}!Q{row_number}:Q{row_number}",
+                    valueInputOption='RAW', body=body).execute()
+                results.append(result)
+            return results
 
         except HttpError as error:
             print(f"An error occurred: {error}")
             return error
 
     @staticmethod
-    def create_spreadsheet_batchupdate_request_for_google_maps_column_by_row_idx(idx: int, google_maps_link:str) -> dict:
-
+    def create_spreadsheet_request_for_google_maps_column(idx: int, google_maps_link: str) -> dict:
         return {
-            "updateCells":
-                {
-                    "rows": [{"values": [{"userEnteredValue": {"stringValue": google_maps_link}}]}],
-                    "fields": '*',
-                    "range": {
-                        "sheetId": config.RENT_SHEET_ID,
-                        "startRowIndex": idx - 1,
-                        "endRowIndex": idx,
-                        "startColumnIndex": 16,
-                        "endColumnIndex": 17
+            "updateCells": {
+                "rows": [
+                    {
+                        "values": [
+                            {
+                                "userEnteredValue": {
+                                    "stringValue": google_maps_link,
+                                },
+                                "userEnteredFormat": {
+                                    "hyperlinkDisplayType": "LINKED",
+                                },
+                            },
+                        ],
                     }
+                ],
+                "fields": '*',
+                "range": {
+                    "sheetId": config.RENT_SHEET_ID,
+                    "startRowIndex": idx,
+                    "endRowIndex": idx + 1,
+                    "startColumnIndex": 16,
+                    "endColumnIndex": 17
                 }
-
+            }
         }

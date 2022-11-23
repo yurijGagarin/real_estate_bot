@@ -65,10 +65,11 @@ def insert_data_to_spreadsheet(name: str, address: str, district: str):
     api = GoogleApi()
     data = api.get_sheet_data(name)
     idxs = []
-    for i, row in enumerate(data[1:], 2):
+    for i, row in enumerate(data):
         if address in row and district in row:
             idxs.append(i)
-    link = 'testetstestestestestest'
+    # idxs = [1,2,3]
+    link = 'https://maps.google.com/?q=%D0%9B%D1%8C%D0%B2%D1%96%D0%B2%D1%81%D1%8C%D0%BA%D0%B0+33%D0%B0%2C+%D0%91%D1%80%D1%8E%D1%85%D0%BE%D0%B2%D0%B8%D1%87%D1%96%2C+%D0%96%D0%9A+%D0%A5%D0%B2%D0%B8%D0%BB%D1%8F%2C+%D0%9B%D1%8C%D0%B2%D1%96%D0%B2'
     data = api.batch_update_google_maps_link_by_row_idx(idxs, link)
     print(data)
     return data

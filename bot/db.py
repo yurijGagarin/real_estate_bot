@@ -118,7 +118,7 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         # logging.debug(value)
         return [v[0] for v in value]
 
-#todo get method to write data to geodata table
+
 async def get_user(user_id: int):
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
@@ -126,7 +126,6 @@ async def get_user(user_id: int):
     return user
 
 
-#todo fix this
 async def write_data_to_geodata_table(address: str, district: str, map_link: str, coordinates: Dict):
     async with async_session() as session:
         row = await session.get(bot.models.GeoData, (address, district))
@@ -136,7 +135,7 @@ async def write_data_to_geodata_table(address: str, district: str, map_link: str
                 district=district,
                 map_link=map_link,
                 coordinates=coordinates,
-                )
+            )
         else:
             row = row.update(address, district, map_link, coordinates)
 
@@ -254,7 +253,7 @@ class AddressData:
                     or self.residential_complex.lower() == self.address.lower():
                 google_query += f'ЖК {self.residential_complex}, '
         google_query += f'Львів'
-        
+
         return google_query, text
 
 

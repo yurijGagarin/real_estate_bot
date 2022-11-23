@@ -219,7 +219,6 @@ class ItemsQuestion(BaseQuestion):
     def get_items(self):
         return self.items
 
-    # todo: ccheck
     async def build_data(self) -> str:
         values = await self.get_text_answer()
         return values or 'Не надано'

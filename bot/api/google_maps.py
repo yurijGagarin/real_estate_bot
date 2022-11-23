@@ -27,12 +27,12 @@ class GoogleMapsApi:
             if 'geometry' in result and 'location' in result.get('geometry'):
                 location = result.get('geometry').get('location')
                 return_data = {
-                    'google_maps_link': f'https://www.google.com/maps/place/{location["lat"]},{location["lng"]}',
+                    'google_maps_link': f'https://www.google.com/maps/place/?t=k&q={location["lat"]},{location["lng"]}',
                     'coordinates': location,
                 }
 
             if 'name' in result:
-                return_data['google_maps_link'] = f"https://maps.google.com/?q={quote_plus(address)}"
+                return_data['google_maps_link'] = f"https://maps.google.com/?t=k&q={quote_plus(address)}"
 
         return return_data
 
