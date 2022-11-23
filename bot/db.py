@@ -45,7 +45,7 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
     async with async_session() as session:
         max_id = (await session.execute(func.max(model.id))).scalar() or 0
         for datum in data:
-            result = await session.execute(select(model).where(model.link == datum["link"]))
+            result = (await session.execute(select(model).where(model.link == datum["link"])))
             instances = result.fetchone()
             if instances is None:
                 existing_row = await session.get(model, datum['id'])
