@@ -317,7 +317,7 @@ async def submit_geolink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     api = GoogleApi()
     spreadsheet_data = api.get_sheet_data(name)
     idxs = []
-    for i, row in enumerate(spreadsheet_data[1:], 2):
+    for i, row in enumerate(spreadsheet_data):
         if context.user_data["address_pk"] in row and context.user_data["district_pk"] in row:
             idxs.append(i)
     link = geodata_result["google_maps_link"]

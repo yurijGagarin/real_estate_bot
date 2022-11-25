@@ -32,6 +32,7 @@ services:
       WELCOME_VIDEO: '${WELCOME_VIDEO}'
       RENT_SHEET_ID: '${RENT_SHEET_ID}'
       G_MAPS_API: '${G_MAPS_API}'
+      RENT_APARTMENTS_SHEET_NAME: '${RENT_APARTMENTS_SHEET_NAME }'
     restart: always
     volumes:
       - ./data:/app/data
