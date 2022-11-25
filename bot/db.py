@@ -126,7 +126,7 @@ async def get_user(user_id: int):
     return user
 
 
-#todo fix this
+
 async def write_data_to_geodata_table(address: str, district: str, map_link: str, coordinates: Dict):
     async with async_session() as session:
         row = await session.get(bot.models.GeoData, (address, district))
@@ -136,7 +136,7 @@ async def write_data_to_geodata_table(address: str, district: str, map_link: str
                 district=district,
                 map_link=map_link,
                 coordinates=coordinates,
-                )
+            )
         else:
             row = row.update(address, district, map_link, coordinates)
 
