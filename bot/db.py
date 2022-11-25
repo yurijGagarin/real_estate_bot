@@ -45,7 +45,7 @@ async def sync_objects_to_db(model: Type[bot.models.Ad], data: List[Dict[str, st
     async with async_session() as session:
         max_id = (await session.execute(func.max(model.id))).scalar() or 0
         for datum in data:
-            result = await session.execute(select(model).where(model.link == datum["link"]))
+            result = (await session.execute(select(model).where(model.link == datum["link"])))
             instances = result.fetchone()
             if instances is None:
                 existing_row = await session.get(model, datum['id'])
@@ -118,12 +118,13 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         # logging.debug(value)
         return [v[0] for v in value]
 
-
+#todo get method to write data to geodata table
 async def get_user(user_id: int):
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
 
     return user
+
 
 
 async def write_data_to_geodata_table(address: str, district: str, map_link: str, coordinates: Dict):
@@ -253,7 +254,7 @@ class AddressData:
                     or self.residential_complex.lower() == self.address.lower():
                 google_query += f'ЖК {self.residential_complex}, '
         google_query += f'Львів'
-
+        
         return google_query, text
 
 
