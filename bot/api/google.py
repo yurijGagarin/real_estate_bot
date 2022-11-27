@@ -170,7 +170,6 @@ class GoogleApi:
             sheet_name,
     ):
         range_name = f"{sheet_name}!A1:AD"
-        # Call the Sheets API
         sheet = self.sheet_service.spreadsheets()
         result = (
             sheet.values()
@@ -183,11 +182,8 @@ class GoogleApi:
 
     def batch_update_google_maps_link_by_row_idx(self, indexes: List[int], g_maps_link: str):
         try:
-            requests = []
             results = []
             for idx in indexes:
-                requests.append(self.create_spreadsheet_request_for_google_maps_column(idx, g_maps_link))
-
                 row_number = idx + 1
 
                 body = {
@@ -203,32 +199,3 @@ class GoogleApi:
         except HttpError as error:
             print(f"An error occurred: {error}")
             return error
-
-    @staticmethod
-    def create_spreadsheet_request_for_google_maps_column(idx: int, google_maps_link: str) -> dict:
-        return {
-            "updateCells": {
-                "rows": [
-                    {
-                        "values": [
-                            {
-                                "userEnteredValue": {
-                                    "stringValue": google_maps_link,
-                                },
-                                "userEnteredFormat": {
-                                    "hyperlinkDisplayType": "LINKED",
-                                },
-                            },
-                        ],
-                    }
-                ],
-                "fields": '*',
-                "range": {
-                    "sheetId": config.RENT_SHEET_ID,
-                    "startRowIndex": idx,
-                    "endRowIndex": idx + 1,
-                    "startColumnIndex": 16,
-                    "endColumnIndex": 17
-                }
-            }
-        }

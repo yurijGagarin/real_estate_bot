@@ -72,7 +72,7 @@ def validate_additional_filters(v):
 
 def validated_is_closed(v):
     if v:
-        raise ValueError
+        raise ValueError("Обʼєкт здано")
 
 
 def validate_currency(v):

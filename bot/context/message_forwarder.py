@@ -48,7 +48,7 @@ class MessageForwarder:
 
     async def parse_media_group(self, message_id, message_link) -> Dict:
         model = await get_model_by_link(bot.models.Apartments, message_link) \
-                or get_model_by_link(bot.models.Houses, message_link)
+                or await get_model_by_link(bot.models.Houses, message_link)
         strings_to_remove_in_caption = ['🔍 @real_estate_rent_bot Бот для пошуку',
                                         '🏚 @LvivNovobud канал з продажу',
                                         '🔍 @real_estate_rent_bot бот для пошуку']
