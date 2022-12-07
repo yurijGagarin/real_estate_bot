@@ -61,7 +61,7 @@ sentry_sdk.init(dsn=config.SENTRY_DSN,
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    await show_menu(update=update,
+    r = await show_menu(update=update,
                     context=context,
                     buttons_pattern=START_BUTTONS,
                     text=MAIN_MENU_TEXT,

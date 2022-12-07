@@ -1,19 +1,28 @@
 import datetime
+import re
+import urllib
+from itertools import cycle
 from typing import Optional
 from urllib.parse import urlparse
 
+import httpx
+from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
+import bot.models
 from bot.api.google import GoogleApi
 from bot.api.google_maps import GoogleMapsApi
 from bot.context.message_forwarder import MessageForwarder, logger
 from bot.data_manager import DataManager
 from bot.db import get_recent_users, get_users_with_subscription, get_all_users, get_address_without_link, \
-    write_data_to_geodata_table
+    write_data_to_geodata_table, get_addresses_with_link
 from bot.navigation.basic_keyboard_builder import show_menu
 from bot.navigation.buttons_constants import ADMIN_BUTTONS, get_regular_btn, HOME_MENU_BTN_TEXT, SUBMIT_BTN
 from bot.navigation.constants import ADMIN_MENU_STAGE, MAIN_MENU_STATE, GEO_DATA_STAGE
+from bot.notifications import notify_admins
+from bot.proxies import get_proxies
 
 
 async def get_recent_hour_users(
@@ -106,19 +115,8 @@ async def check_geolink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> s
     return GEO_DATA_STAGE
 
 
-def parse_lat_lng_from_user_link(link: str) -> Optional[dict]:
-    p = urlparse(link)
-    split_geodata = p.path.split('@')
-    if len(split_geodata) != 2:
-        return None
-    list_result = split_geodata[1].split(',')[0:2]
-
-    return {'lat': list_result[0],
-            'lng': list_result[1]}
-
-
 async def user_geolink(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
-    coordinates = parse_lat_lng_from_user_link(update.message.text)
+    coordinates = parse_lat_lng_from_url(update.message.text)
     home_menu_btn = get_regular_btn(text=HOME_MENU_BTN_TEXT, callback=MAIN_MENU_STATE)
     reply_markup = InlineKeyboardMarkup([[home_menu_btn]])
 
@@ -182,8 +180,21 @@ def create_refresh_handler(forwarder: MessageForwarder):
     async def refresh_handler(
             update: Update, context: ContextTypes.DEFAULT_TYPE
     ) -> str:
-        logger.info("success sync")
+        text = "Почекайте, я оновлюю базу..."
+        await show_menu(update=update,
+                        context=context,
+                        text=text,
+                        buttons_pattern=ADMIN_BUTTONS,
+                        admin_menu=True)
         await sync_data(forwarder=forwarder)
+        text = "Перевіряю координати..."
+        await show_menu(update=update,
+                        context=context,
+                        text=text,
+                        buttons_pattern=ADMIN_BUTTONS,
+                        admin_menu=True)
+        #todo:try except ???
+        await write_coordinates_to_db_from_gmaps_link(context)
         text = "База даних оновлена.\nГарного вам дня 😊"
         await show_menu(update=update,
                         context=context,
@@ -193,3 +204,88 @@ def create_refresh_handler(forwarder: MessageForwarder):
         return ADMIN_MENU_STAGE
 
     return refresh_handler
+
+
+async def write_coordinates_to_db_from_gmaps_link(context: ContextTypes.DEFAULT_TYPE):
+    model = bot.models.Apartments
+    result = await get_addresses_with_link(model)
+    added_addresses = set()
+    proxies = await get_proxies()
+    proxy_pool = cycle(proxies)
+    for count, el in enumerate(result):
+        address_key = f'{el.address}-{el.district}'
+        if count == 0 or count % 10 == 0:
+            proxy = next(proxy_pool)
+            proxies = {"http://": f'http://{proxy}'}
+        if address_key in added_addresses:
+            print(f'This address was already validated: {el}')
+            continue
+        lat_lng = await get_lat_lng(el.maps_link, proxies)
+        if lat_lng:
+            await write_data_to_geodata_table(address=el.address,
+                                              district=el.district,
+                                              map_link=el.maps_link,
+                                              coordinates=lat_lng)
+            added_addresses.add(address_key)
+
+        else:
+            await notify_admins(bot=context.bot, text=f'Object has broken link: {el}')
+            # text = f'Object has broken link: {el}\n______________________________________'
+
+
+def parse_lat_lng_from_url(url: str) -> Optional[dict]:
+    p = urlparse(url)
+    split_geodata = p.path.split('@')
+    if len(split_geodata) == 2:
+        list_result = split_geodata[1].split(',')[0:2]
+        return {'lat': list_result[0],
+                'lng': list_result[1]}
+    return None
+
+
+def parse_lat_lng_from_content(response: httpx.Response) -> Optional[dict]:
+    page_content = response.content
+    soup = BeautifulSoup(page_content)
+    data = soup.find_all("meta", itemprop="image")
+    if len(data):
+        link = str(data[0])
+        coordinates = parse_lat_lng_from_url_query(link)
+        return coordinates
+    return None
+
+
+def parse_lat_lng_from_url_query(url: str) -> Optional[dict]:
+    enc_query = urllib.parse.unquote(urlparse(url).query)
+    if enc_query:
+        geos_unparsed = enc_query.split(';')[0].split(',')
+        if len(geos_unparsed) >= 2:
+            lat = re.findall(r"[+-]?[0-9]*[.][0-9]+", geos_unparsed[0])
+            lng = re.findall(r"[+-]?[0-9]*[.][0-9]+", geos_unparsed[1])
+            if lat[0] and lng[0]:
+                coordinates = {'lat': float(lat[0]), 'lng': float(lng[0])}
+                print(f'{coordinates=}')
+                return coordinates
+    return None
+
+
+async def get_lat_lng(link: str, proxies) -> Optional[dict]:
+    first_try = parse_lat_lng_from_url(link)
+    if first_try:
+        return first_try
+    user_agent = UserAgent()
+    headers = {'user-agent': user_agent.random}
+    async with httpx.AsyncClient(proxies=proxies, follow_redirects=True, headers=headers) as client:
+        r = await client.get(link)
+        print(f'short_url:{link}\nURL: {r.url}\nCODE: {r.status_code}')
+    if r.status_code < 400:
+        if '@' in str(r.url):
+            second_try = parse_lat_lng_from_url(str(r.url))
+            if second_try:
+                return second_try
+        third_try = parse_lat_lng_from_content(r)
+        if third_try:
+            return third_try
+        last_try = parse_lat_lng_from_url_query(str(r.url))
+        if last_try:
+            return last_try
+    return None

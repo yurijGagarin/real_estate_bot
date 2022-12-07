@@ -14,6 +14,8 @@ from bot.db import (
     get_admin_users,
     migrate_data as migrate_data_internal,
 )
+from bot.proxies import get_proxies
+from bot.stages.admin_stage import write_coordinates_to_db_from_gmaps_link
 
 
 @click.group()
@@ -88,6 +90,12 @@ async def get_admins():
     users = await get_admin_users()
     for user in users:
         print(user.id, user)
+
+@cli.command()
+@coro
+async def write_coordinates():
+    await write_coordinates_to_db_from_gmaps_link()
+
 
 
 @cli.command()

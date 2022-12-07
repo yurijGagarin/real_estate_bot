@@ -43,6 +43,7 @@ def function_logger(func):
 SELECTED_VALUES = "v"
 SELECT_ALL = "s"
 PAGE_IDX = "p"
+PROVIDE_LOCATION = "l"
 
 ITEMS_PER_PAGE = 20
 
@@ -71,6 +72,7 @@ class BaseFilter:
             SELECTED_VALUES: {},  # Selected values
             SELECT_ALL: None,  # Select all
             PAGE_IDX: 0,  # Current page
+            # PROVIDE_LOCATION: None,  # Current page
         }
         self.state[SELECTED_VALUES] = defaultdict(bool, self.state[SELECTED_VALUES])
         self.__query = None
@@ -98,6 +100,14 @@ class BaseFilter:
     @select_all.setter
     def select_all(self, value):
         self.state[SELECT_ALL] = value
+    #
+    # @property
+    # def provide_location(self):
+    #     return self.state[PROVIDE_LOCATION]
+    #
+    # @provide_location.setter
+    # def provide_location(self, value):
+    #     self.state[PROVIDE_LOCATION] = value
 
     @function_logger
     async def build_query(self):
@@ -180,6 +190,9 @@ class BaseFilter:
                 keyboard.append(
                     [get_regular_btn(self.select_all_text, '{"%s": 1}' % SELECT_ALL)]
                 )
+        #         #todo:new code
+        # if self.name == "Райони" and self.model == Apartments:
+        #     keyboard.append([get_regular_btn('provide_location', '{"%s": 1}' % PROVIDE_LOCATION)])
         return keyboard
 
     #
@@ -194,6 +207,12 @@ class BaseFilter:
             self.values[key] = not self.values.get(key)
         elif PAGE_IDX in payload.callback:
             self.page_idx = payload.callback[PAGE_IDX]
+        #     #todo  new code
+        # elif PROVIDE_LOCATION in payload.callback:
+        #     if self.provide_location is None:
+        #         self.provide_location(payload.callback[PROVIDE_LOCATION])
+        #     else:
+        #         self.provide_location(None)
 
         return dict(self.state)
 
