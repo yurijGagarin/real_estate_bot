@@ -1,11 +1,12 @@
 import json
 from collections import defaultdict
-from typing import Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type, TypedDict
 
-from sqlalchemy import or_, and_, Column
+from sqlalchemy import or_, and_, Column, func
 from sqlalchemy import select
 from sqlalchemy.sql import Select
 from telegram import InlineKeyboardButton, Update
+from telegram.ext import ContextTypes
 
 from bot.api.monobank_currency import get_exchange_rates
 from bot.context.payload import Payload
@@ -21,13 +22,13 @@ from bot.data_manager import (
 )
 from bot.db import get_unique_el_from_db
 from bot.log import logging
-from bot.models import Ad, Apartments, Houses
+from bot.models import Ad, Apartments, Houses, GeoData
 from bot.navigation.buttons_constants import (
     get_next_btn,
     NEXT_BTN_TEXT,
     get_back_btn,
     get_regular_btn,
-    SKIP_BTN_TEXT,
+    SKIP_BTN_TEXT, ACTION_FILTER_BACK, SELECT_BY_DISTRICT, SELECT_BY_GEO,
 )
 
 
@@ -43,8 +44,16 @@ def function_logger(func):
 SELECTED_VALUES = "v"
 SELECT_ALL = "s"
 PAGE_IDX = "p"
+DISTRICT_FILTER_MODE = "mode"
+SELECTED_RADIUS = "radius"
 
 ITEMS_PER_PAGE = 20
+
+
+class BaseFilterState(TypedDict):
+    v: dict
+    s: Optional[str]
+    p: int
 
 
 class BaseFilter:
@@ -58,7 +67,7 @@ class BaseFilter:
     def __init__(
             self,
             model: Type[Ad],
-            state: Optional[Dict],
+            state: Optional[BaseFilterState],
             prev_filter: Optional["BaseFilter"] = None,
             name: Optional[str] = None,
     ):
@@ -183,7 +192,7 @@ class BaseFilter:
         return keyboard
 
     #
-    async def process_action(self, payload: Payload, update: Update):
+    async def process_action(self, payload: Payload, update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = await self.get_items()
         if SELECT_ALL in payload.callback:
             self.select_all = payload.callback[SELECT_ALL]
@@ -249,11 +258,185 @@ class ColumnFilter(BaseFilter):
         return query.filter()
 
 
+class DistrictFilterState(BaseFilterState):
+    district_filter_mode: str
+    provided_location: Optional[dict[str, float]]
+    provided_radius: Optional[int]
+
+
 class DistrictFilter(ColumnFilter):
     name = "Райони"
+    state: DistrictFilterState
+
+    def __init__(self, model: Type[Ad], state: BaseFilterState, prev_filter: Optional["BaseFilter"] = None,
+                 name: Optional[str] = None):
+        super().__init__(model, state, prev_filter, name)
+
+        if self.mode is None:
+            self.state['district_filter_mode'] = 'selection'
+
+    @property
+    def mode(self):
+        return self.state.get('district_filter_mode')
+
+    @mode.setter
+    def mode(self, mode):
+        self.state['district_filter_mode'] = mode
+
+    def is_selection_mode(self):
+        return self.mode == 'selection'
+
+    def is_location_mode(self):
+        return self.mode == 'location'
+
+    def is_district_mode(self):
+        return self.mode == 'district'
 
     def get_column(self) -> Column:
         return self.model.district
+
+    def get_location_provided(self):
+        return self.state.get('provided_location')
+
+    def get_provided_radius(self):
+        return self.state.get('provided_radius')
+
+    def clean_location_data(self):
+        self.state['provided_location'] = None
+        self.state['provided_radius'] = None
+
+    def clean_provided_location(self):
+        self.state['provided_location'] = None
+
+    def has_geodata_values(self):
+        return self.get_location_provided() and self.get_provided_radius()
+
+    def allow_next(self):
+        if self.is_location_mode():
+            if self.get_location_provided() is not None:
+                return self.get_provided_radius() is not None
+            return False
+
+        return super().allow_next()
+
+    def build_next_btn(self):
+        if not self.get_provided_radius() and self.get_location_provided():
+            return None
+
+        return super().build_next_btn()
+
+    def build_back_btn(self):
+        if self.get_location_provided() or self.is_location_mode() or self.is_district_mode():
+            return get_back_btn(f"◀️", '{"%s": %s}' % (ACTION_FILTER_BACK, 1))
+        return super().build_back_btn()
+
+    async def build_keyboard(self) -> List[List[InlineKeyboardButton]]:
+        keyboard = []
+        if self.is_selection_mode():
+            buttons = [
+                get_regular_btn(f"️Пошук за Районами", '{"%s": %s}' % (SELECT_BY_DISTRICT, 1)),
+                get_regular_btn(f"️Пошук за Геолокацією (Бета)", '{"%s": %s}' % (SELECT_BY_GEO, 1))
+            ]
+            keyboard.append(buttons)
+        elif self.is_location_mode():
+            if self.get_location_provided():
+                row = []
+                radiuses = ['1', '2', '3', '5']
+                for item in radiuses:
+                    data = json.dumps(
+                        {
+                            SELECTED_RADIUS: item,
+                        }
+                    )
+                    title = item + ' км'
+                    if self.get_provided_radius() == item:
+                        title = f"{title} ✅"
+                    row.append(get_regular_btn(title, data))
+                keyboard.append(row)
+        elif self.is_district_mode():
+            keyboard = await super().build_keyboard()
+        return keyboard
+
+    async def build_text(self, is_final=False, is_active=False):
+        items = await self.get_items()
+        total_items = len(items)
+        selected_items = len(list(filter(None, self.values.values())))
+        values = "Не вибрано"
+        text = ''
+        if total_items == selected_items:
+            values = f"Всі {self.name}"
+        elif selected_items:
+            values = ", ".join([k for k in items if self.values.get(k)])
+        if self.is_selection_mode():
+            text = f'<b>Ви можете обрати пошук за районом, або пошук за геолокацією.</b>'
+        elif self.is_location_mode():
+            values = 'Локацію не надано'
+            text = '<b>Надішліть боту геолокацію місця</b>, в радіусі якої будемо шукати Вам житло.' \
+                   '\n<b>Для цього натисніть кнопку 📎. Та відправте бажану геолокацію</b>'
+            if self.get_location_provided():
+                text = f'📍<b>Ви надали бажану геолокацію. Оберіть радіус за яким по цій локації шукати Вам житло.</b>'
+                if self.get_provided_radius():
+                    values = f'Ви обрали пошук за радіусом {self.get_provided_radius()} км від наданої вами локації.'
+                if is_active:
+                    values = f'\n📍<b>Ваша геомітка:</b>\nhttps://www.google.com/maps/place/?t=k&q={self.state["provided_location"]["latitude"]},{self.state["provided_location"]["longitude"]}'
+
+                    if self.get_provided_radius():
+                        values += f'\nРадіус пошуку: {self.get_provided_radius()} км'
+        result_sel = text + "\n"
+        result = f"<b>{self.name}</b>: " + values + "\n"
+        if is_active:
+            if self.is_selection_mode():
+                result = result_sel
+            else:
+                result += result_sel
+
+        return result
+
+    async def process_action(self, payload: Payload, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        await super().process_action(payload, update, context)
+        if not self.is_district_mode():
+            self.values = {}
+        if update.message:
+            if update.message.location:
+                self.state['provided_location'] = {
+                    'latitude': update.message.location.latitude,
+                    'longitude': update.message.location.longitude,
+                }
+                await update.message.delete()
+                self.values = {}
+
+        if SELECT_BY_DISTRICT in payload.callback:
+            self.mode = "district"
+        if SELECT_BY_GEO in payload.callback:
+            self.mode = "location"
+        if ACTION_FILTER_BACK in payload.callback:
+            if self.get_location_provided() is not None:
+                self.mode = "location"
+            else:
+                self.mode = "selection"
+            self.clean_location_data()
+
+        if SELECTED_RADIUS in payload.callback:
+            self.state['provided_radius'] = int(payload.callback[SELECTED_RADIUS])
+        return dict(self.state)
+
+    async def build_query(self):
+        if self.has_geodata_values():
+            query = await self.get_query()
+            query: Select = query.join(GeoData,
+                                       and_(GeoData.address == self.model.address,
+                                            GeoData.district == self.model.district,
+                                            self.model.maps_link == GeoData.map_link),
+                                       isouter=True)
+
+            point = func.ST_MakePoint(self.state['provided_location']['longitude'],
+                                      self.state['provided_location']['latitude'])
+            return query.filter(func.ST_DistanceSphere(GeoData.coordinates, point) < self.get_provided_radius() * 1000)
+        return await super().build_query()
+
+    def has_values(self):
+        button_values = super().has_values()
+        return self.has_geodata_values() or button_values
 
 
 class ResidentialComplexFilter(ColumnFilter):
@@ -486,7 +669,7 @@ class AdditionalFilter(BaseFilter):
             return q.filter()
         return q.filter(or_(*filters))
 
-    async def process_action(self, payload: Payload, update: Update):
+    async def process_action(self, payload: Payload, update: Update, context: ContextTypes.DEFAULT_TYPE):
         items = self.get_active_subitems()
         for k in self.BUTTONS_MAPPING.keys():
             if k in payload.callback:
@@ -523,7 +706,7 @@ class PriceFilter(BaseFilter):
         else:
             return f"<b>{self.name}</b>: " + to_text
 
-    async def process_action(self, payload: Payload, update: Update):
+    async def process_action(self, payload: Payload, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             number = int(payload.message.strip())
             if number:

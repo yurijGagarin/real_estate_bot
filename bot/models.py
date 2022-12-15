@@ -76,10 +76,11 @@ class Apartments(Ad):
     pets = Column(String, nullable=True)
 
     def __repr__(self):
-        return "<Apartments(id='%s' rent_price='%s', link='%s')>" % (
+        return "Apartments: id='%s' address='%s', district='%s', maps_link='%s')" % (
             self.id,
-            self.rent_price,
-            self.link,
+            self.address,
+            self.district,
+            self.maps_link,
         )
 
 

@@ -2,7 +2,7 @@ import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Type, Optional
 
-from sqlalchemy import or_, and_
+from sqlalchemy import or_, and_, not_
 from sqlalchemy import select, column, Column, delete, desc, Integer, func
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.ext.serializer import loads
@@ -118,13 +118,12 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         # logging.debug(value)
         return [v[0] for v in value]
 
-#todo get method to write data to geodata table
+
 async def get_user(user_id: int):
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
 
     return user
-
 
 
 async def write_data_to_geodata_table(address: str, district: str, map_link: str, coordinates: Dict):
@@ -254,7 +253,7 @@ class AddressData:
                     or self.residential_complex.lower() == self.address.lower():
                 google_query += f'ЖК {self.residential_complex}, '
         google_query += f'Львів'
-        
+
         return google_query, text
 
 
@@ -283,3 +282,20 @@ async def get_address_without_link() -> Optional[AddressData]:
     #     return AddressData(address=h.address, district=h.district)
 
     return None
+
+
+async def get_addresses_with_link(model: Type[bot.models.Ad]) -> list[bot.models.Ad]:
+    async with async_session() as session:
+        condition = and_(
+            not_(or_(model.maps_link == None, model.maps_link == '')),
+            bot.models.GeoData.address == None,
+        )
+        stmt = select(model) \
+            .join(bot.models.GeoData,
+                  and_(bot.models.GeoData.address == model.address, bot.models.GeoData.district == model.district),
+                  isouter=True) \
+            .filter(condition)
+        r = await session.execute(stmt)
+
+        instances = r.fetchall()
+        return [v[0] for v in instances]

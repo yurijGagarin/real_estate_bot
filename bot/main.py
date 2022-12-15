@@ -228,6 +228,7 @@ def main() -> None:
                     filters.Regex(re.compile(r"[0-9]+", re.IGNORECASE)),
                     apartments_handler,
                 ),
+                MessageHandler(filters.LOCATION, apartments_handler),
             ],
             HOUSES_STAGE: [
                 CallbackQueryHandler(houses_handler),

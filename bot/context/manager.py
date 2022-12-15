@@ -86,8 +86,12 @@ class Manager:
         payload = self.get_payload()
 
         if ACTION_NEXT in payload.callback:
+            if await self.empty_result():
+                await self.show_result()
+                return True, None
             if self.state.filter_index < len(self.filters) - 1:
-                self.move_forward()
+                await self.move_forward()
+
             else:
                 if self.is_subscription:
                     user_id_to_subscribe = self.update.effective_user.id
@@ -153,7 +157,7 @@ class Manager:
             if self.state.filter_index == 0:
                 return False, None
             self.state.filters[self.state.filter_index] = None
-            self.move_back()
+            await self.move_back()
         elif SHOW_NEXT_PAGE in payload.callback:
             await self.show_result()
             return True, None
@@ -162,17 +166,9 @@ class Manager:
         elif ACTION_SUBSCRIBE in payload.callback:
             await self.create_subscription()
             await self.show_result(just_subscribed=True)
-            # await self.show_subscription_created()
             return True, None
-            # return False, {
-            #     "update": self.update,
-            #     "context": self.context,
-            #     "buttons_pattern": SUBSCRIPTION_BUTTONS,
-            #     "text": SUBSCRIPTION_TEXT,
-            #     "subscription_menu": True
-            # }
         else:
-            result = await self.active_filter.process_action(payload, self.update)
+            result = await self.active_filter.process_action(payload, self.update, self.context)
             self.state.filters[self.state.filter_index] = result
 
         await self.edit_message()
@@ -185,10 +181,10 @@ class Manager:
         self.state.filter_index = 0
         self.save_state()
 
-    def move_forward(self):
+    async def move_forward(self):
         self.state.filter_index += 1
 
-    def move_back(self):
+    async def move_back(self):
         last_filter = len(self.state.filters) - 1
         if (
                 self.state.filter_index == last_filter
@@ -233,9 +229,9 @@ class Manager:
                 or keyboard.inline_keyboard
                 != callback_query.message.reply_markup.inline_keyboard
         ):
-            edit_result = await callback_query.edit_message_text(
-                text=new_text, reply_markup=keyboard, parse_mode="HTML"
-            )
+            edit_result = await callback_query.edit_message_text(text=new_text,
+                                                                 reply_markup=keyboard,
+                                                                 parse_mode="HTML")
 
             if isinstance(edit_result, Message):
                 callback_query.message = edit_result
@@ -266,10 +262,17 @@ class Manager:
                 await self.notify_admins_about_bad_link(e.message_link)
                 await delete_model_by_link(self.model, e.message_link)
 
+    async def empty_result(self):
+        q = await self.active_filter.build_query()
+        all_items_result = await get_result(q, self.model)
+        empty_result = not len(all_items_result)
+        return empty_result
+
     async def _show_result(self, just_subscribed):
         await get_user(self.update.effective_user.id)
         q = await self.active_filter.build_query()
         all_items_result = await get_result(q, self.model)
+        #todo:rewrite
         all_items_result_len = len(all_items_result)
         has_pagination = all_items_result_len > SHOW_ITEMS_PER_PAGE
         empty_result = not all_items_result_len
@@ -295,7 +298,7 @@ class Manager:
             keyboard.append([SUBSCRIPTION_BTN])
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        if empty_result:
+        if await self.empty_result():
             text = EMPTY_RESULT_TEXT
         if just_subscribed:
             text += f'\nВи підписалися на оновлення за цими критеріями ✅'
