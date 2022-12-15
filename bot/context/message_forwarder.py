@@ -41,7 +41,10 @@ class MessageForwarder:
         message = messages[0]
         if message.media_group_id is not None:
             parsing_result = await self.parse_media_group(message_id, message_link)
-            await self.app.send_media_group(chat_id=chat_id, media=parsing_result['media_group_to_send'])
+            try:
+                await self.app.send_media_group(chat_id=chat_id, media=parsing_result['media_group_to_send'])
+            except pyrogram.errors.exceptions.bad_request_400.InputUserDeactivated as e:
+                print(e)
         else:
             pass
             # await self.app.send_message(chat_id=chat_id, text=message_link)
