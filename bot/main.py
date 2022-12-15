@@ -61,7 +61,7 @@ sentry_sdk.init(dsn=config.SENTRY_DSN,
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
     user_logging = update.message.from_user
     logger.info("User %s started the conversation.", user_logging.first_name)
-    r = await show_menu(update=update,
+    await show_menu(update=update,
                     context=context,
                     buttons_pattern=START_BUTTONS,
                     text=MAIN_MENU_TEXT,
@@ -228,6 +228,7 @@ def main() -> None:
                     filters.Regex(re.compile(r"[0-9]+", re.IGNORECASE)),
                     apartments_handler,
                 ),
+                MessageHandler(filters.LOCATION, apartments_handler),
             ],
             HOUSES_STAGE: [
                 CallbackQueryHandler(houses_handler),

@@ -12,7 +12,7 @@ from bot.db import (
     get_all_users,
     get_users_with_subscription,
     get_admin_users,
-    migrate_data as migrate_data_internal,
+    migrate_data as migrate_data_internal, get_address_with_coordinates,
 )
 from bot.proxies import get_proxies
 from bot.stages.admin_stage import write_coordinates_to_db_from_gmaps_link
@@ -94,7 +94,9 @@ async def get_admins():
 @cli.command()
 @coro
 async def write_coordinates():
-    await write_coordinates_to_db_from_gmaps_link()
+   r= await get_address_with_coordinates(bot.models.Apartments)
+   pprint(r)
+   print(len(r))
 
 
 

@@ -119,7 +119,6 @@ async def get_result(source_query: Select, model: Type[bot.models.Ad]):
         return [v[0] for v in value]
 
 
-# todo get method to write data to geodata table
 async def get_user(user_id: int):
     async with async_session() as session:
         user = await session.get(bot.models.User, user_id)
@@ -291,7 +290,6 @@ async def get_addresses_with_link(model: Type[bot.models.Ad]) -> list[bot.models
             not_(or_(model.maps_link == None, model.maps_link == '')),
             bot.models.GeoData.address == None,
         )
-        # todo:fix duplicates
         stmt = select(model) \
             .join(bot.models.GeoData,
                   and_(bot.models.GeoData.address == model.address, bot.models.GeoData.district == model.district),
@@ -301,5 +299,3 @@ async def get_addresses_with_link(model: Type[bot.models.Ad]) -> list[bot.models
 
         instances = r.fetchall()
         return [v[0] for v in instances]
-
-#todo: method to check bot.models.GeoData.maps_link != model.maps_link
